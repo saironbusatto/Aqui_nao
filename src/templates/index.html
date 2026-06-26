@@ -8,6 +8,58 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .search-wrap { position:relative; }
+    .search-input {
+      width:100%; padding:12px 16px; background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.15); border-radius:8px;
+      color:#fff; font-size:16px; font-family:'Space Grotesk',sans-serif;
+      outline:none; transition:border-color .2s;
+    }
+    .search-input:focus { border-color:rgba(0,255,135,.5); }
+    .search-input::placeholder { color:rgba(255,255,255,.3); }
+    .search-results {
+      position:absolute; top:calc(100% + 4px); left:0; right:0;
+      background:#0d0d1c; border:1px solid rgba(255,255,255,.1);
+      border-radius:8px; max-height:280px; overflow-y:auto;
+      z-index:100; display:none;
+      box-shadow:0 12px 40px rgba(0,0,0,.6);
+    }
+    .search-result-item {
+      display:flex; align-items:center; gap:12px; padding:12px 16px;
+      cursor:pointer; border-bottom:1px solid rgba(255,255,255,.05);
+      transition:background .15s;
+    }
+    .search-result-item:hover { background:rgba(0,255,135,.08); }
+    .search-result-item:last-child { border-bottom:none; }
+    .result-avatar {
+      width:36px; height:36px; border-radius:50%; display:flex;
+      align-items:center; justify-content:center; font-family:'Bebas Neue';
+      font-size:14px; color:#050509; flex-shrink:0;
+    }
+    .result-avatar.green { background:linear-gradient(135deg,#00FF87,#0AFFED); }
+    .result-avatar.cyan { background:linear-gradient(135deg,#60EFFF,#0A8FFF); }
+    .result-info { flex:1; min-width:0; }
+    .result-name { font-weight:700; font-size:15px; color:#fff; }
+    .result-meta { font-size:12px; color:rgba(255,255,255,.45); margin-top:2px; }
+    .search-selected {
+      display:flex; align-items:center; gap:10px; padding:10px 14px;
+      background:rgba(0,255,135,.08); border:1px solid rgba(0,255,135,.3);
+      border-radius:8px; margin-bottom:8px;
+    }
+    .search-selected-b {
+      background:rgba(96,239,255,.08); border-color:rgba(96,239,255,.3);
+    }
+    .search-selected .result-name { color:#00FF87; }
+    .search-selected-b .result-name { color:#60EFFF; }
+    .selected-clear {
+      margin-left:auto; background:transparent; border:none;
+      color:rgba(255,255,255,.3); cursor:pointer; font-size:18px;
+      padding:0 4px;
+    }
+    .selected-clear:hover { color:#fff; }
+    .no-results { padding:16px; text-align:center; color:rgba(255,255,255,.3); font-size:13px; }
+  </style>
 </head>
 <body>
   <div class="scanline-overlay"></div>
@@ -47,18 +99,14 @@
         <input type="hidden" id="player2Selected" name="player2_selected" value="">
 
         <div class="player-selectors">
+          <!-- JOGADOR A -->
           <div class="player-card">
             <div class="player-label player-label-a">JOGADOR A</div>
-            <div style="display:flex;align-items:center;gap:10px">
-              <div class="player-avatar avatar-a" id="avatarA">--</div>
-              <div style="flex:1;min-width:0">
-                <select class="player-select" id="player1Input" name="player1" required>
-                  <option value="">Selecione...</option>
-                  {% for key, player in players.items() %}
-                  <option value="{{ key }}">{{ player.name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
+            <div id="selectedA" style="display:none"></div>
+            <div class="search-wrap">
+              <input type="text" class="search-input" id="player1Input"
+                     placeholder="Digite o nome do jogador..." autocomplete="off">
+              <div class="search-results" id="results1"></div>
             </div>
           </div>
 
@@ -67,18 +115,14 @@
             <div class="vs-line"></div>
           </div>
 
+          <!-- JOGADOR B -->
           <div class="player-card player-card-b">
             <div class="player-label player-label-b">JOGADOR B</div>
-            <div style="display:flex;align-items:center;gap:10px">
-              <div class="player-avatar avatar-b" id="avatarB">--</div>
-              <div style="flex:1;min-width:0">
-                <select class="player-select" id="player2Input" name="player2" required>
-                  <option value="">Selecione...</option>
-                  {% for key, player in players.items() %}
-                  <option value="{{ key }}">{{ player.name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
+            <div id="selectedB" style="display:none"></div>
+            <div class="search-wrap">
+              <input type="text" class="search-input" id="player2Input"
+                     placeholder="Digite o nome do jogador..." autocomplete="off">
+              <div class="search-results" id="results2"></div>
             </div>
           </div>
         </div>
@@ -137,31 +181,160 @@
   </div>
 
   <script>
-    const p1Select = document.getElementById('player1Input');
-    const p2Select = document.getElementById('player2Input');
-    const avatarA = document.getElementById('avatarA');
-    const avatarB = document.getElementById('avatarB');
+    const allPlayers = {{ all_players_json|safe }};
+
+    let selectedP1 = null;
+    let selectedP2 = null;
+
+    const p1Input = document.getElementById('player1Input');
+    const p2Input = document.getElementById('player2Input');
+    const results1 = document.getElementById('results1');
+    const results2 = document.getElementById('results2');
+    const selectedAEl = document.getElementById('selectedA');
+    const selectedBEl = document.getElementById('selectedB');
     const submitBtn = document.getElementById('submitBtn');
+    const avatarA = document.querySelector('.player-avatar.avatar-a') || document.createElement('div');
+    const avatarB = document.querySelector('.player-avatar.avatar-b') || document.createElement('div');
 
-    p1Select.addEventListener('change', function() {
-      avatarA.textContent = this.value ? this.value.slice(0,2).toUpperCase() : '--';
-      updateSubmitBtn();
-    });
-    p2Select.addEventListener('change', function() {
-      avatarB.textContent = this.value ? this.value.slice(0,2).toUpperCase() : '--';
-      updateSubmitBtn();
-    });
-
-    function updateSubmitBtn() {
-      submitBtn.disabled = !(p1Select.value && p2Select.value);
+    function filterPlayers(query) {
+      if (!query || query.length < 1) return [];
+      const q = query.toLowerCase();
+      return allPlayers.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        p.nationality.toLowerCase().includes(q) ||
+        p.team.toLowerCase().includes(q)
+      ).slice(0, 8);
     }
 
-    function pickBattle(a, b) {
-      p1Select.value = a;
-      p2Select.value = b;
-      avatarA.textContent = a.slice(0,2).toUpperCase();
-      avatarB.textContent = b.slice(0,2).toUpperCase();
+    function renderResults(container, players, playerNum) {
+      if (players.length === 0) {
+        container.innerHTML = '<div class="no-results">Nenhum jogador encontrado</div>';
+        container.style.display = 'block';
+        return;
+      }
+      container.innerHTML = players.map(p => {
+        const initials = p.name.slice(0, 2).toUpperCase();
+        const avatarClass = playerNum === 1 ? 'green' : 'cyan';
+        return `
+          <div class="search-result-item" data-key="${p.key}" data-num="${playerNum}">
+            <div class="result-avatar ${avatarClass}">${initials}</div>
+            <div class="result-info">
+              <div class="result-name">${p.name}</div>
+              <div class="result-meta">${p.nationality} · ${p.team}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      container.style.display = 'block';
+    }
+
+    function selectPlayer(num, key, name, nationality, team) {
+      const input = num === 1 ? p1Input : p2Input;
+      const results = num === 1 ? results1 : results2;
+      const selectedEl = num === 1 ? selectedAEl : selectedBEl;
+      const hidden = num === 1 ? document.getElementById('player1Selected') : document.getElementById('player2Selected');
+
+      hidden.value = key;
+      input.value = '';
+      input.style.display = 'none';
+      results.style.display = 'none';
+
+      const avatarClass = num === 1 ? 'green' : 'cyan';
+      const borderClass = num === 1 ? '' : ' search-selected-b';
+      selectedEl.innerHTML = `
+        <div class="search-selected${borderClass}">
+          <div class="result-avatar ${avatarClass}">${name.slice(0,2).toUpperCase()}</div>
+          <div class="result-info">
+            <div class="result-name">${name}</div>
+            <div class="result-meta">${nationality} · ${team}</div>
+          </div>
+          <button type="button" class="selected-clear" onclick="clearPlayer(${num})">×</button>
+        </div>
+      `;
+      selectedEl.style.display = 'block';
+
+      if (num === 1) selectedP1 = key;
+      else selectedP2 = key;
+
       updateSubmitBtn();
+    }
+
+    function clearPlayer(num) {
+      const input = num === 1 ? p1Input : p2Input;
+      const selectedEl = num === 1 ? selectedAEl : selectedBEl;
+      const hidden = num === 1 ? document.getElementById('player1Selected') : document.getElementById('player2Selected');
+
+      hidden.value = '';
+      input.value = '';
+      input.style.display = '';
+      selectedEl.style.display = 'none';
+      selectedEl.innerHTML = '';
+
+      if (num === 1) selectedP1 = null;
+      else selectedP2 = null;
+
+      updateSubmitBtn();
+      input.focus();
+    }
+
+    function updateSubmitBtn() {
+      submitBtn.disabled = !(selectedP1 && selectedP2);
+    }
+
+    // Event listeners
+    let debounce1, debounce2;
+
+    p1Input.addEventListener('input', function() {
+      clearTimeout(debounce1);
+      debounce1 = setTimeout(() => {
+        const matches = filterPlayers(this.value);
+        renderResults(results1, matches, 1);
+      }, 200);
+    });
+
+    p2Input.addEventListener('input', function() {
+      clearTimeout(debounce2);
+      debounce2 = setTimeout(() => {
+        const matches = filterPlayers(this.value);
+        renderResults(results2, matches, 2);
+      }, 200);
+    });
+
+    p1Input.addEventListener('focus', function() {
+      if (this.value.length >= 1) {
+        const matches = filterPlayers(this.value);
+        renderResults(results1, matches, 1);
+      }
+    });
+
+    p2Input.addEventListener('focus', function() {
+      if (this.value.length >= 1) {
+        const matches = filterPlayers(this.value);
+        renderResults(results2, matches, 2);
+      }
+    });
+
+    // Click on result
+    document.addEventListener('click', function(e) {
+      const item = e.target.closest('.search-result-item');
+      if (item) {
+        const key = item.dataset.key;
+        const num = parseInt(item.dataset.num);
+        const player = allPlayers.find(p => p.key === key);
+        if (player) selectPlayer(num, key, player.name, player.nationality, player.team);
+        return;
+      }
+      if (!e.target.closest('.search-wrap') && !e.target.closest('.search-selected')) {
+        results1.style.display = 'none';
+        results2.style.display = 'none';
+      }
+    });
+
+    function pickBattle(a, b) {
+      const pA = allPlayers.find(p => p.key === a);
+      const pB = allPlayers.find(p => p.key === b);
+      if (pA) selectPlayer(1, a, pA.name, pA.nationality, pA.team);
+      if (pB) selectPlayer(2, b, pB.name, pB.nationality, pB.team);
       document.getElementById('compareForm').submit();
     }
 

@@ -668,10 +668,19 @@ def create_app() -> Flask:
     def inject_csrf_token():
         return {"csrf_token": session.get("csrf_token", "")}
 
+    def _build_players_json():
+        import json
+        return json.dumps([
+            {"key": k, "name": v.name, "nationality": v.nationality, "team": v.current_team or ""}
+            for k, v in sorted(_SEARCH_DB.items())
+        ], ensure_ascii=False)
+
+    def _render_home(**kwargs):
+        return render_template("index.html", all_players_json=_build_players_json(), **kwargs)
+
     @app.route("/")
     def home():
-        players_dict = {k: v for k, v in sorted(_SEARCH_DB.items())}
-        html = render_template("index.html", players=players_dict)
+        html = _render_home()
         resp = make_response(html)
         resp.content_type = "text/html"
         return resp
@@ -682,18 +691,14 @@ def create_app() -> Flask:
             p1_name = request.args.get("p1", "").strip()
             p2_name = request.args.get("p2", "").strip()
             if not p1_name or not p2_name:
-                players_dict = {k: v for k, v in sorted(_SEARCH_DB.items())}
-                html = render_template("index.html", players=players_dict)
-                resp = make_response(html)
+                resp = make_response(_render_home())
                 resp.content_type = "text/html"
                 return resp
         else:
             if not app.config.get("TESTING"):
                 csrf_token = request.form.get("csrf_token", "")
                 if not csrf_token or csrf_token != session.get("csrf_token"):
-                    players_dict = {k: v for k, v in sorted(_SEARCH_DB.items())}
-                    html = render_template("index.html", players=players_dict, error="Token CSRF inválido.")
-                    resp = make_response(html, 403)
+                    resp = make_response(_render_home(error="Token CSRF inválido."), 403)
                     resp.content_type = "text/html"
                     return resp
 
@@ -701,9 +706,7 @@ def create_app() -> Flask:
             p2_name = request.form.get("player2_selected", "").strip() or request.form.get("player2", "").strip()
 
         if not p1_name or not p2_name:
-            players_dict = {k: v for k, v in sorted(_SEARCH_DB.items())}
-            html = render_template("index.html", players=players_dict, error="Selecione dois jogadores para comparar.")
-            resp = make_response(html, 400)
+            resp = make_response(_render_home(error="Selecione dois jogadores para comparar."), 400)
             resp.content_type = "text/html"
             return resp
 
@@ -711,9 +714,7 @@ def create_app() -> Flask:
             p1 = search_player(p1_name)
             p2 = search_player(p2_name)
         except ValueError as e:
-            players_dict = {k: v for k, v in sorted(_SEARCH_DB.items())}
-            html = render_template("index.html", players=players_dict, error=str(e))
-            resp = make_response(html, 404)
+            resp = make_response(_render_home(error=str(e)), 404)
             resp.content_type = "text/html"
             return resp
 
@@ -724,9 +725,7 @@ def create_app() -> Flask:
             comparison = compare_players(p1, p2)
         except Exception:
             logger.exception("Error comparing players %s vs %s", p1_name, p2_name)
-            players_dict = {k: v for k, v in sorted(_SEARCH_DB.items())}
-            html = render_template("index.html", players=players_dict, error="Erro interno. Tente novamente.")
-            resp = make_response(html, 500)
+            resp = make_response(_render_home(error="Erro interno. Tente novamente."), 500)
             resp.content_type = "text/html"
             return resp
 
@@ -741,6 +740,7 @@ def create_app() -> Flask:
         proj2 = calculate_projection(p2)
 
         players_dict = {k: v for k, v in sorted(_SEARCH_DB.items())}
+        all_players_json = _build_players_json()
 
         html = render_template(
             "compare.html",
@@ -751,6 +751,7 @@ def create_app() -> Flask:
             p1_key=p1_key,
             p2_key=p2_key,
             players=players_dict,
+            all_players_json=all_players_json,
             age_data_a=age_data_a,
             age_data_b=age_data_b,
             season_data_a=season_data_a,
