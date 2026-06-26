@@ -206,6 +206,37 @@
       ).slice(0, 8);
     }
 
+    async function searchAPI(query) {
+      try {
+        const r = await fetch('/api/search/' + encodeURIComponent(query));
+        const data = await r.json();
+        if (data.results && data.results.length > 0) {
+          return data.results.map(p => ({
+            key: p.name.toLowerCase().replace(/\s+/g, ''),
+            name: p.name,
+            nationality: p.nationality || '',
+            team: p.club || '',
+            fromAPI: true
+          }));
+        }
+      } catch(e) {}
+      return [];
+    }
+
+    async function doSearch(query, playerNum) {
+      const container = playerNum === 1 ? results1 : results2;
+      const local = filterPlayers(query);
+
+      if (query.length >= 2) {
+        const api = await searchAPI(query);
+        const localKeys = new Set(local.map(p => p.key));
+        const merged = [...local, ...api.filter(p => !localKeys.has(p.key))].slice(0, 10);
+        renderResults(container, merged, playerNum);
+      } else {
+        renderResults(container, local, playerNum);
+      }
+    }
+
     function renderResults(container, players, playerNum) {
       if (players.length === 0) {
         container.innerHTML = '<div class="no-results">Nenhum jogador encontrado</div>';
@@ -215,12 +246,14 @@
       container.innerHTML = players.map(p => {
         const initials = p.name.slice(0, 2).toUpperCase();
         const avatarClass = playerNum === 1 ? 'green' : 'cyan';
+        const meta = p.nationality + (p.team ? ' · ' + p.team : '');
         return `
-          <div class="search-result-item" data-key="${p.key}" data-num="${playerNum}">
+          <div class="search-result-item" data-key="${p.key}" data-num="${playerNum}"
+               data-name="${p.name}" data-meta="${meta}">
             <div class="result-avatar ${avatarClass}">${initials}</div>
             <div class="result-info">
               <div class="result-name">${p.name}</div>
-              <div class="result-meta">${p.nationality} · ${p.team}</div>
+              <div class="result-meta">${meta}</div>
             </div>
           </div>
         `;
@@ -234,7 +267,7 @@
       const selectedEl = num === 1 ? selectedAEl : selectedBEl;
       const hidden = num === 1 ? document.getElementById('player1Selected') : document.getElementById('player2Selected');
 
-      hidden.value = key;
+      hidden.value = name;
       input.value = '';
       input.style.display = 'none';
       results.style.display = 'none';
@@ -253,8 +286,8 @@
       `;
       selectedEl.style.display = 'block';
 
-      if (num === 1) selectedP1 = key;
-      else selectedP2 = key;
+      if (num === 1) selectedP1 = name;
+      else selectedP2 = name;
 
       updateSubmitBtn();
     }
@@ -286,32 +319,20 @@
 
     p1Input.addEventListener('input', function() {
       clearTimeout(debounce1);
-      debounce1 = setTimeout(() => {
-        const matches = filterPlayers(this.value);
-        renderResults(results1, matches, 1);
-      }, 200);
+      debounce1 = setTimeout(() => doSearch(this.value, 1), 250);
     });
 
     p2Input.addEventListener('input', function() {
       clearTimeout(debounce2);
-      debounce2 = setTimeout(() => {
-        const matches = filterPlayers(this.value);
-        renderResults(results2, matches, 2);
-      }, 200);
+      debounce2 = setTimeout(() => doSearch(this.value, 2), 250);
     });
 
     p1Input.addEventListener('focus', function() {
-      if (this.value.length >= 1) {
-        const matches = filterPlayers(this.value);
-        renderResults(results1, matches, 1);
-      }
+      if (this.value.length >= 1) doSearch(this.value, 1);
     });
 
     p2Input.addEventListener('focus', function() {
-      if (this.value.length >= 1) {
-        const matches = filterPlayers(this.value);
-        renderResults(results2, matches, 2);
-      }
+      if (this.value.length >= 1) doSearch(this.value, 2);
     });
 
     // Click on result
@@ -321,7 +342,11 @@
         const key = item.dataset.key;
         const num = parseInt(item.dataset.num);
         const player = allPlayers.find(p => p.key === key);
-        if (player) selectPlayer(num, key, player.name, player.nationality, player.team);
+        if (player) {
+          selectPlayer(num, key, player.name, player.nationality, player.team);
+        } else {
+          selectPlayer(num, key, item.dataset.name, item.dataset.meta.split(' · ')[0], item.dataset.meta.split(' · ')[1] || '');
+        }
         return;
       }
       if (!e.target.closest('.search-wrap') && !e.target.closest('.search-selected')) {
