@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ p1.name }} vs {{ p2.name }} - AQUI NÃO!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="scanline-overlay"></div>
+
+  <div class="topbar">
+    <button class="topbar-back" onclick="window.location='/'">← AQUI NÃO!</button>
+    <div class="topbar-title">
+      <span style="color:#00FF87">{{ p1.name|upper }}</span>
+      <span style="color:rgba(255,255,255,.2);margin:0 12px">VS</span>
+      <span style="color:#60EFFF">{{ p2.name|upper }}</span>
+    </div>
+    <div class="topbar-share">COMPARTILHAR</div>
+  </div>
+
+  <div class="player-header">
+    <div class="player-panel player-panel-a">
+      <div class="panel-glow glow-a"></div>
+      <div class="panel-label">JOGADOR A</div>
+      <div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:20px;position:relative">
+        <div class="panel-avatar avatar-lg-a">{{ p1.name[:2]|upper }}</div>
+        <div>
+          <div class="panel-name">{{ p1.name|upper }}</div>
+          <div class="panel-sub">{{ p1.nationality }} · {{ p1.position }}</div>
+          <div class="panel-switch">
+            <span class="panel-switch-label">TROCAR</span>
+            <select class="panel-switch-select" id="switchA" onchange="switchPlayer(1, this.value)">
+              {% for key, player in players.items() %}
+              <option value="{{ key }}" {{ 'selected' if key == p1_key }}>{{ player.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="panel-stats">
+        <div>
+          <div class="panel-stat-value"><span class="panel-stat-value-a" id="dGoalsA">0</span></div>
+          <div class="panel-stat-label">GOLS</div>
+        </div>
+        <div class="panel-stat-divider"></div>
+        <div>
+          <div class="panel-stat-value"><span class="panel-stat-value-a" id="dAssistsA">0</span></div>
+          <div class="panel-stat-label">ASSIST.</div>
+        </div>
+        <div class="panel-stat-divider"></div>
+        <div>
+          <div class="panel-stat-value"><span class="panel-stat-value-a" id="dGamesA">0</span></div>
+          <div class="panel-stat-label">JOGOS</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="vs-center">
+      <div class="vs-center-text">VS</div>
+    </div>
+
+    <div class="player-panel player-panel-b">
+      <div class="panel-glow glow-b"></div>
+      <div class="panel-label" style="text-align:right">JOGADOR B</div>
+      <div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:20px;flex-direction:row-reverse;position:relative">
+        <div class="panel-avatar avatar-lg-b">{{ p2.name[:2]|upper }}</div>
+        <div style="text-align:right">
+          <div class="panel-name">{{ p2.name|upper }}</div>
+          <div class="panel-sub">{{ p2.nationality }} · {{ p2.position }}</div>
+          <div class="panel-switch" style="margin-left:auto">
+            <span class="panel-switch-label">TROCAR</span>
+            <select class="panel-switch-select" id="switchB" onchange="switchPlayer(2, this.value)">
+              {% for key, player in players.items() %}
+              <option value="{{ key }}" {{ 'selected' if key == p2_key }}>{{ player.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="panel-stats" style="justify-content:flex-end">
+        <div>
+          <div class="panel-stat-value"><span class="panel-stat-value-b" id="dGamesB">0</span></div>
+          <div class="panel-stat-label">JOGOS</div>
+        </div>
+        <div class="panel-stat-divider"></div>
+        <div>
+          <div class="panel-stat-value"><span class="panel-stat-value-b" id="dAssistsB">0</span></div>
+          <div class="panel-stat-label">ASSIST.</div>
+        </div>
+        <div class="panel-stat-divider"></div>
+        <div>
+          <div class="panel-stat-value"><span class="panel-stat-value-b" id="dGoalsB">0</span></div>
+          <div class="panel-stat-label">GOLS</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-block">
+      <div class="stat-block-label">GOLS</div>
+      <div class="stat-block-values">
+        <div>
+          <div class="stat-big stat-big-a" id="sGoalsA">0</div>
+          <div class="stat-small stat-small-a">{{ p1.name|upper }}</div>
+        </div>
+        <div class="stat-dash">—</div>
+        <div style="text-align:right">
+          <div class="stat-big stat-big-b" id="sGoalsB">0</div>
+          <div class="stat-small stat-small-b">{{ p2.name|upper }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-block-label">ASSISTÊNCIAS</div>
+      <div class="stat-block-values">
+        <div>
+          <div class="stat-big stat-big-a" id="sAssistsA">0</div>
+          <div class="stat-small stat-small-a">{{ p1.name|upper }}</div>
+        </div>
+        <div class="stat-dash">—</div>
+        <div style="text-align:right">
+          <div class="stat-big stat-big-b" id="sAssistsB">0</div>
+          <div class="stat-small stat-small-b">{{ p2.name|upper }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-block-label">JOGOS</div>
+      <div class="stat-block-values">
+        <div>
+          <div class="stat-big stat-big-a" id="sGamesA">0</div>
+          <div class="stat-small stat-small-a">{{ p1.name|upper }}</div>
+        </div>
+        <div class="stat-dash">—</div>
+        <div style="text-align:right">
+          <div class="stat-big stat-big-b" id="sGamesB">0</div>
+          <div class="stat-small stat-small-b">{{ p2.name|upper }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-block-label">LESÕES</div>
+      <div class="stat-block-values">
+        <div>
+          <div class="stat-big stat-big-a" id="sInjA">0</div>
+          <div class="stat-small stat-small-a">{{ p1.name|upper }}</div>
+        </div>
+        <div class="stat-dash">—</div>
+        <div style="text-align:right">
+          <div class="stat-big stat-big-b" id="sInjB">0</div>
+          <div class="stat-small stat-small-b">{{ p2.name|upper }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-label">ANÁLISE TÉCNICA</div>
+      <div class="chart-title">COMPARAÇÃO GERAL</div>
+      <div class="chart-canvas-wrap">
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-label">EVOLUÇÃO DA CARREIRA</div>
+      <div class="chart-title">GOLS POR TEMPORADA</div>
+      <div class="chart-canvas-wrap">
+        <canvas id="timelineChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-label">COMPARAÇÃO POR IDADE</div>
+      <div class="chart-title">GOLS NA MESMA IDADE</div>
+      <div class="chart-canvas-wrap">
+        <canvas id="ageChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-label">PROJEÇÃO DE CARREIRA</div>
+      <div class="chart-title">GOLS PROJETADOS</div>
+      <div class="chart-canvas-wrap">
+        <canvas id="projectionChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="report-card">
+    <div class="report-title">RELATÓRIO COMPLETO</div>
+    <div class="report-content">{{ report }}</div>
+  </div>
+
+  <script>
+    const statsA = {
+      goals: {{ p1.total_goals }},
+      assists: {{ p1.total_assists }},
+      appearances: {{ p1.total_appearances }},
+      injuries: {{ p1.total_injuries }},
+      minutes: {{ p1.total_minutes }},
+      wcGoals: {{ p1.world_cup_goals }},
+    };
+    const statsB = {
+      goals: {{ p2.total_goals }},
+      assists: {{ p2.total_assists }},
+      appearances: {{ p2.total_appearances }},
+      injuries: {{ p2.total_injuries }},
+      minutes: {{ p2.total_minutes }},
+      wcGoals: {{ p2.world_cup_goals }},
+    };
+
+    // Goals by age data
+    const ageDataA = {{ age_data_a|tojson }};
+    const ageDataB = {{ age_data_b|tojson }};
+
+    // Goals by season data
+    const seasonDataA = {{ season_data_a|tojson }};
+    const seasonDataB = {{ season_data_b|tojson }};
+
+    // Projection data
+    const proj1 = {{ projection1|tojson }};
+    const proj2 = {{ projection2|tojson }};
+
+    // Animate stats
+    function animateStats() {
+      const dur = 1400, t0 = Date.now();
+      const ease = t => 1 - Math.pow(1 - t, 4);
+
+      function update() {
+        const p = Math.min((Date.now() - t0) / dur, 1);
+        const e = ease(p);
+
+        const gA = Math.round(statsA.goals * e);
+        const gB = Math.round(statsB.goals * e);
+        const aA = Math.round(statsA.assists * e);
+        const aB = Math.round(statsB.assists * e);
+        const apA = Math.round(statsA.appearances * e);
+        const apB = Math.round(statsB.appearances * e);
+        const iA = Math.round(statsA.injuries * e);
+        const iB = Math.round(statsB.injuries * e);
+
+        document.getElementById('dGoalsA').textContent = gA;
+        document.getElementById('dGoalsB').textContent = gB;
+        document.getElementById('dAssistsA').textContent = aA;
+        document.getElementById('dAssistsB').textContent = aB;
+        document.getElementById('dGamesA').textContent = apA;
+        document.getElementById('dGamesB').textContent = apB;
+
+        document.getElementById('sGoalsA').textContent = gA;
+        document.getElementById('sGoalsB').textContent = gB;
+        document.getElementById('sAssistsA').textContent = aA;
+        document.getElementById('sAssistsB').textContent = aB;
+        document.getElementById('sGamesA').textContent = apA;
+        document.getElementById('sGamesB').textContent = apB;
+        document.getElementById('sInjA').textContent = iA;
+        document.getElementById('sInjB').textContent = iB;
+
+        if (p < 1) requestAnimationFrame(update);
+      }
+      update();
+    }
+
+    // Charts
+    const grid = 'rgba(255,255,255,.05)';
+    const tick = {color:'rgba(255,255,255,.38)', font:{family:'Space Grotesk', size:11}};
+    const legend = {labels:{color:'rgba(255,255,255,.7)',font:{family:'Space Grotesk',size:12},boxWidth:12}};
+
+    // Bar chart
+    new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Gols','Assistências','Jogos','Minutos (÷100)'],
+        datasets: [
+          {label:'{{ p1.name }}', data:[statsA.goals, statsA.assists, statsA.appearances, Math.round(statsA.minutes/100)], backgroundColor:'rgba(0,255,135,.7)', borderColor:'#00FF87', borderWidth:1, borderRadius:3},
+          {label:'{{ p2.name }}', data:[statsB.goals, statsB.assists, statsB.appearances, Math.round(statsB.minutes/100)], backgroundColor:'rgba(96,239,255,.7)', borderColor:'#60EFFF', borderWidth:1, borderRadius:3},
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend},
+        scales:{x:{grid:{color:grid},ticks:{color:'rgba(255,255,255,.65)',font:{family:'Space Grotesk',size:12}}},y:{grid:{color:grid},ticks}},
+        animation:{duration:1200, easing:'easeOutQuart'},
+      }
+    });
+
+    // Timeline chart
+    const allSeasons = [...new Set([...seasonDataA.map(d=>d[0]),...seasonDataB.map(d=>d[0])])].sort((a,b)=>a.localeCompare(b));
+    const sMapA = Object.fromEntries(seasonDataA);
+    const sMapB = Object.fromEntries(seasonDataB);
+    new Chart(document.getElementById('timelineChart'), {
+      type: 'line',
+      data: {
+        labels: allSeasons,
+        datasets: [
+          {label:'{{ p1.name }}', data:allSeasons.map(s=>sMapA[s]||0), borderColor:'#00FF87', backgroundColor:'rgba(0,255,135,.12)', fill:true, tension:.4, borderWidth:2.5, pointRadius:0, pointHoverRadius:6},
+          {label:'{{ p2.name }}', data:allSeasons.map(s=>sMapB[s]||0), borderColor:'#60EFFF', backgroundColor:'rgba(96,239,255,.12)', fill:true, tension:.4, borderWidth:2.5, pointRadius:0, pointHoverRadius:6},
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend, tooltip:{mode:'index',intersect:false}},
+        scales:{x:{grid:{color:grid},ticks:{...tick,maxRotation:0,maxTicksLimit:10}},y:{grid:{color:grid},ticks}},
+        animation:{duration:1200, easing:'easeOutQuart'},
+      }
+    });
+
+    // Age comparison chart
+    const allAges = [...new Set([...ageDataA.map(d=>d[0]),...ageDataB.map(d=>d[0])])].sort((a,b)=>a-b);
+    const aMapA = Object.fromEntries(ageDataA);
+    const aMapB = Object.fromEntries(ageDataB);
+    new Chart(document.getElementById('ageChart'), {
+      type: 'bar',
+      data: {
+        labels: allAges.map(a => a + ' anos'),
+        datasets: [
+          {label:'{{ p1.name }}', data:allAges.map(a=>aMapA[a]||0), backgroundColor:'rgba(0,255,135,.6)', borderColor:'#00FF87', borderWidth:1, borderRadius:3},
+          {label:'{{ p2.name }}', data:allAges.map(a=>aMapB[a]||0), backgroundColor:'rgba(96,239,255,.6)', borderColor:'#60EFFF', borderWidth:1, borderRadius:3},
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend},
+        scales:{x:{grid:{color:grid},ticks:{...tick,maxRotation:45}},y:{grid:{color:grid},ticks}},
+        animation:{duration:1000, easing:'easeOutQuart'},
+      }
+    });
+
+    // Projection chart
+    new Chart(document.getElementById('projectionChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Atual', 'Aos 30', 'Aos 35', 'Aos 40'],
+        datasets: [
+          {label:'{{ p1.name }}', data:[proj1.current, proj1.at_30, proj1.at_35, proj1.at_40], backgroundColor:'rgba(0,255,135,.6)', borderColor:'#00FF87', borderWidth:1, borderRadius:3},
+          {label:'{{ p2.name }}', data:[proj2.current, proj2.at_30, proj2.at_35, proj2.at_40], backgroundColor:'rgba(96,239,255,.6)', borderColor:'#60EFFF', borderWidth:1, borderRadius:3},
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend},
+        scales:{x:{grid:{color:grid},ticks:{color:'rgba(255,255,255,.65)',font:{family:'Space Grotesk',size:12}}},y:{grid:{color:grid},ticks}},
+        animation:{duration:1000, easing:'easeOutQuart'},
+      }
+    });
+
+    animateStats();
+
+    function switchPlayer(num, key) {
+      window.location = '/compare?p1=' + (num === 1 ? key : document.getElementById('switchA').value) +
+                        '&p2=' + (num === 2 ? key : document.getElementById('switchB').value);
+    }
+  </script>
+</body>
+</html>

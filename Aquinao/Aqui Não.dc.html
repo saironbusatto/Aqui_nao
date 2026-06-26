@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <script>(function(){const _e=console.error.bind(console);console.error=function(){const a=arguments;if(a.length===1&&a[0]!==null&&typeof a[0]==='object'&&!(a[0] instanceof Error)&&!a[0].message&&!a[0].stack&&Object.keys(a[0]).length===0)return;_e.apply(console,a);};})();</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    @keyframes fadeInUp {
+      from { transform:translateY(26px); }
+      to   { transform:translateY(0); }
+    }
+    @keyframes slideInL {
+      from { transform:translateX(-48px); }
+      to   { transform:translateX(0); }
+    }
+    @keyframes slideInR {
+      from { transform:translateX(48px); }
+      to   { transform:translateX(0); }
+    }
+    @keyframes vsPulse {
+      0%,100% { transform:scale(1) rotate(-2deg); letter-spacing:4px; }
+      50%     { transform:scale(1.12) rotate(2deg); letter-spacing:8px; }
+    }
+    @keyframes neonGlow {
+      0%,100% { text-shadow:0 0 18px rgba(0,255,135,.7),0 0 48px rgba(0,255,135,.3); }
+      50%     { text-shadow:0 0 30px rgba(0,255,135,1),0 0 90px rgba(0,255,135,.5),0 0 140px rgba(0,255,135,.2); }
+    }
+    @keyframes gradShift {
+      0%   { background-position:0% 0%; }
+      50%  { background-position:100% 100%; }
+      100% { background-position:0% 0%; }
+    }
+    @keyframes scanMove {
+      from { background-position:0 0; }
+      to   { background-position:0 8px; }
+    }
+    @keyframes orbFloat {
+      0%,100% { transform:translate(0,0) scale(1); }
+      33%     { transform:translate(20px,-30px) scale(1.05); }
+      66%     { transform:translate(-15px,20px) scale(.95); }
+    }
+    @keyframes borderPulse {
+      0%,100% { border-color:rgba(0,255,135,.35); }
+      50%     { border-color:rgba(0,255,135,.7); }
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:#050509; overflow-x:hidden; }
+    select { appearance:none; -webkit-appearance:none; background:transparent; border:none; color:inherit; font:inherit; cursor:pointer; outline:none; }
+    ::-webkit-scrollbar { width:3px; height:3px; }
+    ::-webkit-scrollbar-track { background:#0a0a12; }
+    ::-webkit-scrollbar-thumb { background:#00FF87; border-radius:2px; }
+    ::selection { background:rgba(0,255,135,.3); }
+  </style>
+</helmet>
+
+<!-- ROOT -->
+<div style="min-height:100vh; background:#050509; color:#fff; font-family:'Space Grotesk',sans-serif; overflow-x:hidden; position:relative">
+
+  <!-- Scanline overlay -->
+  <div style="position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:1;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.04) 3px,rgba(0,0,0,.04) 4px);animation:scanMove .08s linear infinite"></div>
+
+  <!-- ═══════════════════ HOME VIEW ═══════════════════ -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="Home">
+
+      <!-- Particles canvas -->
+      <canvas ref="{{ particlesRef }}" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.7"></canvas>
+
+      <!-- Grid overlay -->
+      <div style="position:fixed;inset:0;pointer-events:none;z-index:1;background-image:linear-gradient(rgba(0,255,135,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,135,.025) 1px,transparent 1px);background-size:64px 64px"></div>
+
+      <!-- ── NAV ── -->
+      <nav style="position:relative;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:22px 48px;border-bottom:1px solid rgba(0,255,135,.1);backdrop-filter:blur(8px)">
+        <div style="font-family:'Bebas Neue';font-size:26px;letter-spacing:3px;color:#00FF87;animation:neonGlow 3s ease-in-out infinite;cursor:pointer">AQUI NÃO!</div>
+        <div style="display:flex;gap:4px">
+          <div style="padding:8px 18px;border:1px solid rgba(0,255,135,.4);border-radius:3px;font-size:12px;font-weight:600;color:#00FF87;letter-spacing:2px;cursor:pointer;animation:borderPulse 2.5s ease-in-out infinite">JOGADORES</div>
+          <div style="padding:8px 18px;border:1px solid rgba(255,255,255,.12);border-radius:3px;font-size:12px;font-weight:600;color:rgba(255,255,255,.45);letter-spacing:2px;cursor:pointer">TIMES</div>
+          <div style="padding:8px 18px;border:1px solid rgba(255,255,255,.12);border-radius:3px;font-size:12px;font-weight:600;color:rgba(255,255,255,.45);letter-spacing:2px;cursor:pointer">SELEÇÕES</div>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,.25);letter-spacing:1px">BASE DE DADOS MUNDIAL ⚽</div>
+      </nav>
+
+      <!-- ── HERO ── -->
+      <section style="position:relative;z-index:10;padding:72px 48px 60px;text-align:center;overflow:hidden">
+
+        <!-- Ambient orbs -->
+        <div style="position:absolute;top:10%;left:8%;width:520px;height:520px;background:radial-gradient(circle,rgba(0,255,135,.1) 0%,transparent 70%);pointer-events:none;filter:blur(48px);animation:orbFloat 12s ease-in-out infinite"></div>
+        <div style="position:absolute;top:10%;right:8%;width:520px;height:520px;background:radial-gradient(circle,rgba(96,239,255,.08) 0%,transparent 70%);pointer-events:none;filter:blur(48px);animation:orbFloat 15s ease-in-out infinite reverse"></div>
+
+        <div style="position:relative">
+          <!-- Tag line -->
+          <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border:1px solid rgba(0,255,135,.25);border-radius:20px;font-size:11px;letter-spacing:4px;color:#00FF87;margin-bottom:28px;animation:fadeInUp .5s ease both">
+            <span style="width:6px;height:6px;border-radius:50%;background:#00FF87;display:inline-block;box-shadow:0 0 8px #00FF87"></span>
+            COMPARE · ANALISE · DECIDA
+          </div>
+
+          <!-- Main heading -->
+          <h1 style="font-family:'Bebas Neue';font-size:clamp(72px,13vw,160px);line-height:.88;letter-spacing:-3px;margin-bottom:0;animation:fadeInUp .7s ease .08s both">
+            QUEM FOI
+          </h1>
+          <h1 style="font-family:'Bebas Neue';font-size:clamp(72px,13vw,160px);line-height:.88;letter-spacing:-3px;margin-bottom:32px;color:#00FF87;animation:neonGlow 3s ease-in-out infinite;animation-delay:.1s">
+            MELHOR?
+          </h1>
+
+          <!-- Subtext -->
+          <p style="font-size:17px;color:rgba(255,255,255,.5);max-width:520px;margin:0 auto 52px;line-height:1.65;font-weight:400;animation:fadeInUp .7s ease .2s both">
+            Cruze qualquer campeonato, qualquer época. Dados reais, debate resolvido.
+          </p>
+
+          <!-- ── PLAYER SELECTORS ── -->
+          <div style="display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;animation:fadeInUp .7s ease .32s both">
+
+            <!-- Player A -->
+            <div style="background:rgba(0,255,135,.07);border:1.5px solid rgba(0,255,135,.35);border-radius:10px;padding:18px 24px;min-width:230px;text-align:left;transition:border-color .2s;animation:borderPulse 3s ease-in-out infinite">
+              <div style="font-size:10px;letter-spacing:3px;color:#00FF87;margin-bottom:10px;font-weight:600">JOGADOR A</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#00FF87,#0AFFED);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:15px;color:#050509;flex-shrink:0">{{ playerAInitials }}</div>
+                <div style="flex:1;min-width:0">
+                  <select onChange="{{ onChangeA }}" value="{{ playerA }}" style="font-size:17px;font-weight:700;color:#fff;font-family:'Space Grotesk',sans-serif;width:100%">
+                    <sc-for list="{{ playerList }}" as="opt" hint-placeholder-count="5">
+                      <option value="{{ opt.value }}">{{ opt.label }}</option>
+                    </sc-for>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- VS -->
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <div style="font-family:'Bebas Neue';font-size:52px;color:#fff;letter-spacing:4px;animation:vsPulse 2.4s ease-in-out infinite;text-shadow:0 0 24px rgba(255,255,255,.3)">VS</div>
+              <div style="width:1px;height:32px;background:linear-gradient(to bottom,rgba(255,255,255,.3),transparent)"></div>
+            </div>
+
+            <!-- Player B -->
+            <div style="background:rgba(96,239,255,.07);border:1.5px solid rgba(96,239,255,.35);border-radius:10px;padding:18px 24px;min-width:230px;text-align:left">
+              <div style="font-size:10px;letter-spacing:3px;color:#60EFFF;margin-bottom:10px;font-weight:600">JOGADOR B</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#60EFFF,#0A8FFF);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:15px;color:#050509;flex-shrink:0">{{ playerBInitials }}</div>
+                <div style="flex:1;min-width:0">
+                  <select onChange="{{ onChangeB }}" value="{{ playerB }}" style="font-size:17px;font-weight:700;color:#fff;font-family:'Space Grotesk',sans-serif;width:100%">
+                    <sc-for list="{{ playerList }}" as="opt" hint-placeholder-count="5">
+                      <option value="{{ opt.value }}">{{ opt.label }}</option>
+                    </sc-for>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <div style="margin-top:36px;animation:fadeInUp .7s ease .44s both">
+            <button onClick="{{ goCompare }}" style="padding:18px 64px;background:#00FF87;color:#050509;font-family:'Bebas Neue';font-size:24px;letter-spacing:4px;border:none;border-radius:4px;cursor:pointer;box-shadow:0 0 48px rgba(0,255,135,.45),0 4px 24px rgba(0,0,0,.4);transition:all .2s">
+              COMPARAR AGORA →
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── FEATURED BATTLES ── -->
+      <section style="position:relative;z-index:10;padding:20px 48px 64px;max-width:1200px;margin:0 auto">
+        <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:32px">
+          <div style="font-size:10px;letter-spacing:4px;color:rgba(255,255,255,.3)">EM DESTAQUE</div>
+          <h2 style="font-family:'Bebas Neue';font-size:42px;letter-spacing:1px">DUELOS ÉPICOS</h2>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+          <sc-for list="{{ battles }}" as="battle" hint-placeholder-count="3">
+            <div onClick="{{ battle.onClick }}" style="position:relative;background:#0d0d1c;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:28px 32px;cursor:pointer;overflow:hidden;transition:all .25s" style-hover="border-color:rgba(0,255,135,.3);transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,255,135,.1)">
+              <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,255,135,.05) 0%,transparent 50%,rgba(96,239,255,.04) 100%);pointer-events:none"></div>
+              <div style="position:absolute;top:0;right:0;width:160px;height:160px;background:radial-gradient(circle at 100% 0%,rgba(0,255,135,.08),transparent 70%);pointer-events:none"></div>
+              <div style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.3);margin-bottom:20px;position:relative">{{ battle.label }}</div>
+              <div style="display:flex;align-items:center;gap:14px;position:relative">
+                <span style="font-family:'Bebas Neue';font-size:36px;color:#00FF87;letter-spacing:1px">{{ battle.nA }}</span>
+                <span style="font-family:'Bebas Neue';font-size:20px;color:rgba(255,255,255,.25);letter-spacing:3px">VS</span>
+                <span style="font-family:'Bebas Neue';font-size:36px;color:#60EFFF;letter-spacing:1px">{{ battle.nB }}</span>
+              </div>
+              <div style="margin-top:18px;font-size:11px;font-weight:600;color:#00FF87;letter-spacing:2px;position:relative">COMPARAR AGORA →</div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <div style="position:relative;z-index:10;text-align:center;padding:32px;border-top:1px solid rgba(255,255,255,.05);color:rgba(255,255,255,.18);font-size:12px;letter-spacing:2px">
+        AQUI NÃO! · BASE DE DADOS DO FUTEBOL MUNDIAL · 2025
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ═══════════════════ COMPARISON VIEW ═══════════════════ -->
+  <sc-if value="{{ isCompare }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Compare" style="min-height:100vh;background:#050509">
+
+      <!-- ── TOP BAR (sticky) ── -->
+      <div style="position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:52px;background:rgba(5,5,9,.92);border-bottom:1px solid rgba(255,255,255,.07);backdrop-filter:blur(20px)">
+        <button onClick="{{ goHome }}" style="display:flex;align-items:center;gap:8px;background:transparent;border:none;color:#00FF87;font-family:'Space Grotesk';font-size:13px;font-weight:600;cursor:pointer;letter-spacing:2px;padding:0">
+          ← AQUI NÃO!
+        </button>
+        <div style="font-family:'Bebas Neue';font-size:20px;letter-spacing:4px;color:rgba(255,255,255,.6)">
+          <span style="color:#00FF87">{{ playerAShort }}</span>
+          <span style="color:rgba(255,255,255,.2);margin:0 12px">VS</span>
+          <span style="color:#60EFFF">{{ playerBShort }}</span>
+        </div>
+        <div style="padding:8px 18px;border:1px solid rgba(0,255,135,.3);border-radius:4px;font-size:11px;font-weight:600;color:#00FF87;cursor:pointer;letter-spacing:2px">COMPARTILHAR</div>
+      </div>
+
+      <!-- ── PLAYER SPLIT HEADER ── -->
+      <div data-screen-label="Player Header" style="display:grid;grid-template-columns:1fr 90px 1fr;min-height:250px;border-bottom:1px solid rgba(255,255,255,.06)">
+
+        <!-- PLAYER A -->
+        <div style="background:linear-gradient(120deg,rgba(0,255,135,.13) 0%,rgba(0,255,135,.04) 50%,transparent 100%);padding:40px 52px;position:relative;overflow:hidden;animation:slideInL .55s ease both">
+          <div style="position:absolute;top:-60px;right:-60px;width:280px;height:280px;background:radial-gradient(circle,rgba(0,255,135,.14) 0%,transparent 70%);pointer-events:none;border-radius:50%"></div>
+          <div style="font-size:9px;letter-spacing:4px;color:rgba(255,255,255,.3);margin-bottom:16px;font-weight:600">JOGADOR A</div>
+
+          <div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:20px;position:relative">
+            <div style="width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#00FF87,#0AFFED);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:26px;color:#050509;flex-shrink:0;box-shadow:0 0 32px rgba(0,255,135,.4)">{{ playerAInitials }}</div>
+            <div>
+              <div style="font-family:'Bebas Neue';font-size:52px;color:#fff;line-height:.95;letter-spacing:1px;margin-bottom:6px">{{ playerAShort }}</div>
+              <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:12px">{{ playerASub }}</div>
+              <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:7px 14px;cursor:pointer;width:fit-content">
+                <span style="font-size:10px;color:rgba(255,255,255,.35);letter-spacing:1px">TROCAR</span>
+                <select onChange="{{ onChangeA }}" value="{{ playerA }}" style="font-size:13px;font-weight:600;color:#fff;font-family:'Space Grotesk',sans-serif">
+                  <sc-for list="{{ playerList }}" as="opt" hint-placeholder-count="5">
+                    <option value="{{ opt.value }}">{{ opt.label }}</option>
+                  </sc-for>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:32px;position:relative">
+            <div>
+              <div style="font-family:'Bebas Neue';font-size:46px;color:#00FF87;line-height:1">{{ dGoalsA }}</div>
+              <div style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.35);font-weight:600">GOLS</div>
+            </div>
+            <div style="width:1px;background:rgba(255,255,255,.08)"></div>
+            <div>
+              <div style="font-family:'Bebas Neue';font-size:46px;color:#00FF87;line-height:1">{{ dAssistsA }}</div>
+              <div style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.35);font-weight:600">ASSIST.</div>
+            </div>
+            <div style="width:1px;background:rgba(255,255,255,.08)"></div>
+            <div>
+              <div style="font-family:'Bebas Neue';font-size:46px;color:#00FF87;line-height:1">{{ dGamesA }}</div>
+              <div style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.35);font-weight:600">JOGOS</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VS CENTER -->
+        <div style="display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25);border-left:1px solid rgba(255,255,255,.05);border-right:1px solid rgba(255,255,255,.05);position:relative">
+          <div style="font-family:'Bebas Neue';font-size:32px;color:#fff;letter-spacing:5px;animation:vsPulse 2.4s ease-in-out infinite;text-shadow:0 0 28px rgba(255,255,255,.25)">VS</div>
+        </div>
+
+        <!-- PLAYER B -->
+        <div style="background:linear-gradient(240deg,rgba(96,239,255,.13) 0%,rgba(96,239,255,.04) 50%,transparent 100%);padding:40px 52px;position:relative;overflow:hidden;animation:slideInR .55s ease both">
+          <div style="position:absolute;top:-60px;left:-60px;width:280px;height:280px;background:radial-gradient(circle,rgba(96,239,255,.14) 0%,transparent 70%);pointer-events:none;border-radius:50%"></div>
+          <div style="font-size:9px;letter-spacing:4px;color:rgba(255,255,255,.3);margin-bottom:16px;font-weight:600;text-align:right">JOGADOR B</div>
+
+          <div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:20px;flex-direction:row-reverse;position:relative">
+            <div style="width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#60EFFF,#0A8FFF);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:26px;color:#050509;flex-shrink:0;box-shadow:0 0 32px rgba(96,239,255,.4)">{{ playerBInitials }}</div>
+            <div style="text-align:right">
+              <div style="font-family:'Bebas Neue';font-size:52px;color:#fff;line-height:.95;letter-spacing:1px;margin-bottom:6px">{{ playerBShort }}</div>
+              <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:12px">{{ playerBSub }}</div>
+              <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:7px 14px;cursor:pointer;width:fit-content;margin-left:auto">
+                <span style="font-size:10px;color:rgba(255,255,255,.35);letter-spacing:1px">TROCAR</span>
+                <select onChange="{{ onChangeB }}" value="{{ playerB }}" style="font-size:13px;font-weight:600;color:#fff;font-family:'Space Grotesk',sans-serif">
+                  <sc-for list="{{ playerList }}" as="opt" hint-placeholder-count="5">
+                    <option value="{{ opt.value }}">{{ opt.label }}</option>
+                  </sc-for>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:32px;justify-content:flex-end;position:relative">
+            <div style="text-align:right">
+              <div style="font-family:'Bebas Neue';font-size:46px;color:#60EFFF;line-height:1">{{ dGamesB }}</div>
+              <div style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.35);font-weight:600">JOGOS</div>
+            </div>
+            <div style="width:1px;background:rgba(255,255,255,.08)"></div>
+            <div style="text-align:right">
+              <div style="font-family:'Bebas Neue';font-size:46px;color:#60EFFF;line-height:1">{{ dAssistsB }}</div>
+              <div style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.35);font-weight:600">ASSIST.</div>
+            </div>
+            <div style="width:1px;background:rgba(255,255,255,.08)"></div>
+            <div style="text-align:right">
+              <div style="font-family:'Bebas Neue';font-size:46px;color:#60EFFF;line-height:1">{{ dGoalsB }}</div>
+              <div style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.35);font-weight:600">GOLS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── FILTERS BAR ── -->
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 32px;background:#0b0b16;border-bottom:1px solid rgba(255,255,255,.05);overflow-x:auto">
+        <div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.25);white-space:nowrap;margin-right:8px;font-weight:600">FILTROS</div>
+        <div style="display:flex;align-items:center;gap:6px;background:rgba(0,255,135,.08);border:1px solid rgba(0,255,135,.3);border-radius:20px;padding:6px 16px;white-space:nowrap;cursor:pointer;flex-shrink:0">
+          <span style="font-size:13px">🏆</span>
+          <span style="font-size:12px;font-weight:600;color:#00FF87">Todos os Campeonatos</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#00FF87" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:6px 16px;white-space:nowrap;cursor:pointer;flex-shrink:0">
+          <span style="font-size:13px">📅</span>
+          <span style="font-size:12px;font-weight:500;color:rgba(255,255,255,.55)">Todas as Temporadas</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:6px 16px;white-space:nowrap;cursor:pointer;flex-shrink:0">
+          <span style="font-size:13px">🎯</span>
+          <span style="font-size:12px;font-weight:500;color:rgba(255,255,255,.55)">Todas as Fases</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:6px 16px;white-space:nowrap;cursor:pointer;flex-shrink:0">
+          <span style="font-size:13px">📍</span>
+          <span style="font-size:12px;font-weight:500;color:rgba(255,255,255,.55)">Clube na Época: Todos</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:6px 16px;white-space:nowrap;cursor:pointer;flex-shrink:0">
+          <span style="font-size:13px">🔷</span>
+          <span style="font-size:12px;font-weight:500;color:rgba(255,255,255,.55)">Posição: Todas</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+      </div>
+
+      <!-- ── BIG STATS ROW ── -->
+      <div data-screen-label="Stats" style="display:grid;grid-template-columns:repeat(4,1fr);background:#090911">
+        <!-- GOLS -->
+        <div style="padding:24px 32px;border-right:1px solid rgba(255,255,255,.05)">
+          <div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.28);text-align:center;margin-bottom:14px;font-weight:600">GOLS</div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+            <div>
+              <div style="font-family:'Bebas Neue';font-size:56px;color:#00FF87;line-height:1">{{ dGoalsA }}</div>
+              <div style="font-size:10px;color:rgba(0,255,135,.5);font-weight:600;letter-spacing:1px">{{ playerAShort }}</div>
+            </div>
+            <div style="font-size:11px;color:rgba(255,255,255,.15);padding-bottom:10px">—</div>
+            <div style="text-align:right">
+              <div style="font-family:'Bebas Neue';font-size:56px;color:#60EFFF;line-height:1">{{ dGoalsB }}</div>
+              <div style="font-size:10px;color:rgba(96,239,255,.5);font-weight:600;letter-spacing:1px">{{ playerBShort }}</div>
+            </div>
+          </div>
+        </div>
+        <!-- ASSIST -->
+        <div style="padding:24px 32px;border-right:1px solid rgba(255,255,255,.05)">
+          <div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.28);text-align:center;margin-bottom:14px;font-weight:600">ASSISTÊNCIAS</div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+            <div>
+              <div style="font-family:'Bebas Neue';font-size:56px;color:#00FF87;line-height:1">{{ dAssistsA }}</div>
+              <div style="font-size:10px;color:rgba(0,255,135,.5);font-weight:600;letter-spacing:1px">{{ playerAShort }}</div>
+            </div>
+            <div style="font-size:11px;color:rgba(255,255,255,.15);padding-bottom:10px">—</div>
+            <div style="text-align:right">
+              <div style="font-family:'Bebas Neue';font-size:56px;color:#60EFFF;line-height:1">{{ dAssistsB }}</div>
+              <div style="font-size:10px;color:rgba(96,239,255,.5);font-weight:600;letter-spacing:1px">{{ playerBShort }}</div>
+            </div>
+          </div>
+        </div>
+        <!-- JOGOS -->
+        <div style="padding:24px 32px;border-right:1px solid rgba(255,255,255,.05)">
+          <div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.28);text-align:center;margin-bottom:14px;font-weight:600">JOGOS</div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+            <div>
+              <div style="font-family:'Bebas Neue';font-size:56px;color:#00FF87;line-height:1">{{ dGamesA }}</div>
+              <div style="font-size:10px;color:rgba(0,255,135,.5);font-weight:600;letter-spacing:1px">{{ playerAShort }}</div>
+            </div>
+            <div style="font-size:11px;color:rgba(255,255,255,.15);padding-bottom:10px">—</div>
+            <div style="text-align:right">
+              <div style="font-family:'Bebas Neue';font-size:56px;color:#60EFFF;line-height:1">{{ dGamesB }}</div>
+              <div style="font-size:10px;color:rgba(96,239,255,.5);font-weight:600;letter-spacing:1px">{{ playerBShort }}</div>
+            </div>
+          </div>
+        </div>
+        <!-- TÍTULOS -->
+        <div style="padding:24px 32px">
+          <div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.28);text-align:center;margin-bottom:14px;font-weight:600">TÍTULOS</div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+            <div>
+              <div style="font-family:'Bebas Neue';font-size:56px;color:#00FF87;line-height:1">{{ dTitlesA }}</div>
+              <div style="font-size:10px;color:rgba(0,255,135,.5);font-weight:600;letter-spacing:1px">{{ playerAShort }}</div>
+            </div>
+            <div style="font-size:11px;color:rgba(255,255,255,.15);padding-bottom:10px">—</div>
+            <div style="text-align:right">
+              <div style="font-family:'Bebas Neue';font-size:56px;color:#60EFFF;line-height:1">{{ dTitlesB }}</div>
+              <div style="font-size:10px;color:rgba(96,239,255,.5);font-weight:600;letter-spacing:1px">{{ playerBShort }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CHARTS 2×2 ── -->
+      <div data-screen-label="Charts" style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:rgba(255,255,255,.04);padding:2px">
+
+        <!-- RADAR -->
+        <div style="background:#09090f;padding:32px;animation:fadeInUp .6s ease .05s both">
+          <div style="margin-bottom:20px">
+            <div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.25);margin-bottom:4px;font-weight:600">ANÁLISE TÉCNICA</div>
+            <div style="font-family:'Bebas Neue';font-size:26px;letter-spacing:1px">PERFIL COMPLETO</div>
+          </div>
+          <div style="position:relative;height:300px">
+            <canvas ref="{{ radarRef }}" style="width:100%;height:100%"></canvas>
+          </div>
+        </div>
+
+        <!-- TIMELINE -->
+        <div style="background:#09090f;padding:32px;animation:fadeInUp .6s ease .12s both">
+          <div style="margin-bottom:20px">
+            <div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.25);margin-bottom:4px;font-weight:600">EVOLUÇÃO DA CARREIRA</div>
+            <div style="font-family:'Bebas Neue';font-size:26px;letter-spacing:1px">GOLS POR TEMPORADA</div>
+          </div>
+          <div style="position:relative;height:300px">
+            <canvas ref="{{ timelineRef }}" style="width:100%;height:100%"></canvas>
+          </div>
+        </div>
+
+        <!-- BAR -->
+        <div style="background:#09090f;padding:32px;animation:fadeInUp .6s ease .19s both">
+          <div style="margin-bottom:20px">
+            <div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.25);margin-bottom:4px;font-weight:600">CONFRONTO DIRETO</div>
+            <div style="font-family:'Bebas Neue';font-size:26px;letter-spacing:1px">COMPARAÇÃO GERAL</div>
+          </div>
+          <div style="position:relative;height:300px">
+            <canvas ref="{{ barRef }}" style="width:100%;height:100%"></canvas>
+          </div>
+        </div>
+
+        <!-- HEATMAP -->
+        <div style="background:#09090f;padding:32px;animation:fadeInUp .6s ease .26s both">
+          <div style="margin-bottom:20px">
+            <div style="font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.25);margin-bottom:4px;font-weight:600">POSICIONAMENTO</div>
+            <div style="font-family:'Bebas Neue';font-size:26px;letter-spacing:1px">MAPA DE CALOR</div>
+          </div>
+          <div style="display:flex;gap:12px;height:300px">
+
+            <!-- Pitch A -->
+            <div style="flex:1;position:relative;border:1px solid rgba(255,255,255,.08);border-radius:6px;overflow:hidden">
+              <svg viewBox="0 0 100 150" style="width:100%;height:100%;display:block" preserveAspectRatio="none">
+                <defs>
+                  <filter id="hbA" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="3.5"></feGaussianBlur>
+                  </filter>
+                </defs>
+                <rect width="100" height="150" fill="#071a0e"></rect>
+                <rect x="2" y="2" width="96" height="146" fill="none" stroke="rgba(255,255,255,.18)" stroke-width=".6"></rect>
+                <line x1="2" y1="75" x2="98" y2="75" stroke="rgba(255,255,255,.14)" stroke-width=".5"></line>
+                <circle cx="50" cy="75" r="14" fill="none" stroke="rgba(255,255,255,.14)" stroke-width=".5"></circle>
+                <circle cx="50" cy="75" r="1" fill="rgba(255,255,255,.4)"></circle>
+                <rect x="24" y="2" width="52" height="22" fill="none" stroke="rgba(255,255,255,.12)" stroke-width=".5"></rect>
+                <rect x="24" y="126" width="52" height="22" fill="none" stroke="rgba(255,255,255,.12)" stroke-width=".5"></rect>
+                <rect x="36" y="2" width="28" height="8" fill="none" stroke="rgba(255,255,255,.15)" stroke-width=".5"></rect>
+                <rect x="36" y="140" width="28" height="8" fill="none" stroke="rgba(255,255,255,.15)" stroke-width=".5"></rect>
+                <sc-for list="{{ heatA }}" as="z" hint-placeholder-count="5">
+                  <circle cx="{{ z.x }}" cy="{{ z.y }}" r="{{ z.r }}" fill="#00FF87" opacity="{{ z.o }}" filter="url(#hbA)"></circle>
+                </sc-for>
+              </svg>
+              <div style="position:absolute;bottom:7px;left:0;right:0;text-align:center;font-family:'Bebas Neue';font-size:12px;color:#00FF87;letter-spacing:2px;text-shadow:0 0 8px rgba(0,255,135,.6)">{{ playerAShort }}</div>
+            </div>
+
+            <!-- Pitch B -->
+            <div style="flex:1;position:relative;border:1px solid rgba(255,255,255,.08);border-radius:6px;overflow:hidden">
+              <svg viewBox="0 0 100 150" style="width:100%;height:100%;display:block" preserveAspectRatio="none">
+                <defs>
+                  <filter id="hbB" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="3.5"></feGaussianBlur>
+                  </filter>
+                </defs>
+                <rect width="100" height="150" fill="#071a0e"></rect>
+                <rect x="2" y="2" width="96" height="146" fill="none" stroke="rgba(255,255,255,.18)" stroke-width=".6"></rect>
+                <line x1="2" y1="75" x2="98" y2="75" stroke="rgba(255,255,255,.14)" stroke-width=".5"></line>
+                <circle cx="50" cy="75" r="14" fill="none" stroke="rgba(255,255,255,.14)" stroke-width=".5"></circle>
+                <circle cx="50" cy="75" r="1" fill="rgba(255,255,255,.4)"></circle>
+                <rect x="24" y="2" width="52" height="22" fill="none" stroke="rgba(255,255,255,.12)" stroke-width=".5"></rect>
+                <rect x="24" y="126" width="52" height="22" fill="none" stroke="rgba(255,255,255,.12)" stroke-width=".5"></rect>
+                <rect x="36" y="2" width="28" height="8" fill="none" stroke="rgba(255,255,255,.15)" stroke-width=".5"></rect>
+                <rect x="36" y="140" width="28" height="8" fill="none" stroke="rgba(255,255,255,.15)" stroke-width=".5"></rect>
+                <sc-for list="{{ heatB }}" as="z" hint-placeholder-count="5">
+                  <circle cx="{{ z.x }}" cy="{{ z.y }}" r="{{ z.r }}" fill="#60EFFF" opacity="{{ z.o }}" filter="url(#hbB)"></circle>
+                </sc-for>
+              </svg>
+              <div style="position:absolute;bottom:7px;left:0;right:0;text-align:center;font-family:'Bebas Neue';font-size:12px;color:#60EFFF;letter-spacing:2px;text-shadow:0 0 8px rgba(96,239,255,.6)">{{ playerBShort }}</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- bottom padding -->
+      <div style="height:56px;background:#09090f"></div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  particlesRef = React.createRef();
+  radarRef     = React.createRef();
+  timelineRef  = React.createRef();
+  barRef       = React.createRef();
+
+  radarChart    = null;
+  timelineChart = null;
+  barChart      = null;
+  particleId    = null;
+  statsInterval = null;
+
+  state = {
+    view: 'home',
+    playerA: 'messi',
+    playerB: 'maradona',
+    dGoalsA:0, dGoalsB:0,
+    dAssistsA:0, dAssistsB:0,
+    dGamesA:0,  dGamesB:0,
+    dTitlesA:0, dTitlesB:0,
+  };
+
+  db = {
+    messi: {
+      name:'Lionel Messi', short:'MESSI', sub:'🇦🇷 Argentina · Atacante', color:'#00FF87',
+      stats:{goals:807,assists:355,games:1063,titles:44},
+      radar:[82,98,97,96,95,88],
+      timeline:[[2004,1],[2005,8],[2006,17],[2007,16],[2008,23],[2009,38],[2010,47],[2011,53],[2012,91],[2013,45],[2014,58],[2015,52],[2016,59],[2017,54],[2018,51],[2019,50],[2020,30],[2021,40],[2022,32],[2023,35]],
+      heat:[{x:45,y:95,r:22,o:.8},{x:35,y:82,r:14,o:.6},{x:55,y:90,r:13,o:.55},{x:40,y:72,r:10,o:.35},{x:50,y:105,r:9,o:.45}],
+    },
+    maradona: {
+      name:'Diego Maradona', short:'MARADONA', sub:'🇦🇷 Argentina · Atacante', color:'#60EFFF',
+      stats:{goals:312,assists:188,games:491,titles:16},
+      radar:[90,99,88,85,89,97],
+      timeline:[[1976,5],[1977,10],[1978,22],[1979,28],[1980,25],[1981,30],[1982,20],[1983,18],[1984,22],[1985,24],[1986,35],[1987,28],[1988,32],[1989,25],[1990,18],[1991,14],[1992,12],[1993,8],[1994,5]],
+      heat:[{x:50,y:90,r:24,o:.8},{x:40,y:78,r:16,o:.65},{x:60,y:85,r:13,o:.5},{x:45,y:68,r:11,o:.35}],
+    },
+    ronaldo: {
+      name:'Cristiano Ronaldo', short:'CR7', sub:'🇵🇹 Portugal · Atacante', color:'#FF6B35',
+      stats:{goals:893,assists:232,games:1170,titles:35},
+      radar:[91,85,98,80,82,92],
+      timeline:[[2002,3],[2003,6],[2004,15],[2005,15],[2006,23],[2007,42],[2008,33],[2009,26],[2010,53],[2011,60],[2012,64],[2013,69],[2014,61],[2015,57],[2016,55],[2017,44],[2018,44],[2019,37],[2020,36],[2021,24]],
+      heat:[{x:50,y:85,r:19,o:.8},{x:60,y:72,r:13,o:.5},{x:55,y:96,r:12,o:.6},{x:45,y:76,r:10,o:.3}],
+    },
+    pele: {
+      name:'Pelé', short:'PELÉ', sub:'🇧🇷 Brasil · Atacante', color:'#FFD700',
+      stats:{goals:767,assists:150,games:812,titles:26},
+      radar:[88,90,95,82,87,94],
+      timeline:[[1956,5],[1957,22],[1958,58],[1959,61],[1960,47],[1961,47],[1962,48],[1963,41],[1964,39],[1965,49],[1966,30],[1967,25],[1968,25],[1969,26],[1970,18],[1971,12],[1972,10],[1973,8]],
+      heat:[{x:50,y:88,r:19,o:.8},{x:45,y:76,r:13,o:.6},{x:55,y:82,r:11,o:.5}],
+    },
+    neymar: {
+      name:'Neymar Jr.', short:'NEYMAR', sub:'🇧🇷 Brasil · Atacante', color:'#A78BFA',
+      stats:{goals:435,assists:270,games:756,titles:28},
+      radar:[87,96,85,88,87,80],
+      timeline:[[2009,14],[2010,42],[2011,49],[2012,59],[2013,33],[2014,31],[2015,39],[2016,35],[2017,25],[2018,19],[2019,23],[2020,13],[2021,14],[2022,18],[2023,15]],
+      heat:[{x:35,y:92,r:20,o:.8},{x:30,y:80,r:13,o:.6},{x:40,y:100,r:11,o:.5}],
+    },
+  };
+
+  battles = [
+    {a:'messi',    b:'maradona', label:'A BRIGA ETERNA 🇦🇷'},
+    {a:'messi',    b:'ronaldo',  label:'O MAIOR DE TODOS ⚽'},
+    {a:'pele',     b:'maradona', label:'PELÉ VS DEUS 👑'},
+  ];
+
+  componentDidMount() {
+    if (this.state.view === 'compare') {
+      setTimeout(() => { this.initCharts(); this.rollStats(); }, 150);
+    } else {
+      this.startParticles();
+    }
+  }
+
+  componentDidUpdate(pp, ps) {
+    const s = this.state;
+    if (ps.view !== 'compare' && s.view === 'compare') {
+      setTimeout(() => { this.initCharts(); this.rollStats(); }, 120);
+    }
+    if (ps.view === 'compare' && s.view === 'home') {
+      this.killCharts();
+      setTimeout(() => this.startParticles(), 0);
+    }
+    if (s.view === 'compare' && (ps.playerA !== s.playerA || ps.playerB !== s.playerB)) {
+      setTimeout(() => { this.updateCharts(); this.rollStats(); }, 50);
+    }
+  }
+
+  componentWillUnmount() {
+    cancelAnimationFrame(this.particleId);
+    if (this.statsInterval) clearInterval(this.statsInterval);
+    if (this._resizeHandler) window.removeEventListener('resize', this._resizeHandler);
+    this.killCharts();
+  }
+
+  startParticles() {
+    cancelAnimationFrame(this.particleId);
+    const cv = this.particlesRef.current;
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const resize = () => { cv.width = window.innerWidth; cv.height = window.innerHeight; };
+    resize();
+    this._resizeHandler = resize;
+    window.addEventListener('resize', resize);
+
+    const pts = Array.from({length: 75}, () => ({
+      x: Math.random() * cv.width,
+      y: Math.random() * cv.height,
+      r: Math.random() * 1.8 + 0.4,
+      vx: (Math.random() - .5) * .38,
+      vy: (Math.random() - .5) * .38,
+      c: Math.random() > .55 ? '#00FF87' : Math.random() > .5 ? '#60EFFF' : 'rgba(255,255,255,.9)',
+      a: Math.random() * .55 + .12,
+    }));
+
+    const loop = () => {
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      pts.forEach(p => {
+        p.x = (p.x + p.vx + cv.width)  % cv.width;
+        p.y = (p.y + p.vy + cv.height) % cv.height;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, 6.283);
+        ctx.fillStyle = p.c;
+        ctx.globalAlpha = p.a;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+      for (let i = 0; i < pts.length; i++) {
+        for (let j = i + 1; j < pts.length; j++) {
+          const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+          const d = Math.sqrt(dx*dx + dy*dy);
+          if (d < 115) {
+            ctx.beginPath();
+            ctx.moveTo(pts[i].x, pts[i].y);
+            ctx.lineTo(pts[j].x, pts[j].y);
+            ctx.strokeStyle = `rgba(0,255,135,${(1-d/115)*.11})`;
+            ctx.lineWidth = .5;
+            ctx.stroke();
+          }
+        }
+      }
+      this.particleId = requestAnimationFrame(loop);
+    };
+    loop();
+  }
+
+  killCharts() {
+    ['radarChart','timelineChart','barChart'].forEach(k => {
+      if (this[k]) { this[k].destroy(); this[k] = null; }
+    });
+  }
+
+  initCharts() {
+    this.killCharts();
+    if (!window.Chart) return;
+    const {playerA, playerB} = this.state;
+    const a = this.db[playerA], b = this.db[playerB];
+    const grid = 'rgba(255,255,255,.05)';
+    const tick = {color:'rgba(255,255,255,.38)', font:{family:'Space Grotesk', size:11}};
+
+    // Radar
+    const rc = this.radarRef.current;
+    if (rc) {
+      this.radarChart = new window.Chart(rc, {
+        type: 'radar',
+        data: {
+          labels: ['Velocidade','Drible','Finalização','Passe','Visão','Liderança'],
+          datasets: [
+            {label:a.short, data:a.radar, borderColor:'#00FF87', backgroundColor:'rgba(0,255,135,.1)', borderWidth:2, pointBackgroundColor:'#00FF87', pointRadius:4, pointHoverRadius:7},
+            {label:b.short, data:b.radar, borderColor:'#60EFFF', backgroundColor:'rgba(96,239,255,.1)', borderWidth:2, pointBackgroundColor:'#60EFFF', pointRadius:4, pointHoverRadius:7},
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:'rgba(255,255,255,.7)',font:{family:'Space Grotesk',size:12},boxWidth:12}}},
+          scales:{r:{min:0,max:100,grid:{color:'rgba(255,255,255,.07)'},ticks:{display:false},pointLabels:{color:'rgba(255,255,255,.65)',font:{family:'Space Grotesk',size:11}},angleLines:{color:'rgba(255,255,255,.07)'}}},
+          animation:{duration:1000,easing:'easeOutQuart'},
+        }
+      });
+    }
+
+    // Timeline
+    const tc = this.timelineRef.current;
+    if (tc) {
+      const allY = [...new Set([...a.timeline.map(d=>d[0]),...b.timeline.map(d=>d[0])])].sort((x,y)=>x-y);
+      const aM = Object.fromEntries(a.timeline), bM = Object.fromEntries(b.timeline);
+      this.timelineChart = new window.Chart(tc, {
+        type:'line',
+        data: {
+          labels: allY,
+          datasets: [
+            {label:a.short, data:allY.map(y=>aM[y]||0), borderColor:'#00FF87', backgroundColor:'rgba(0,255,135,.12)', fill:true, tension:.4, borderWidth:2.5, pointRadius:0, pointHoverRadius:6},
+            {label:b.short, data:allY.map(y=>bM[y]||0), borderColor:'#60EFFF', backgroundColor:'rgba(96,239,255,.12)', fill:true, tension:.4, borderWidth:2.5, pointRadius:0, pointHoverRadius:6},
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:'rgba(255,255,255,.7)',font:{family:'Space Grotesk',size:12},boxWidth:12}},tooltip:{mode:'index',intersect:false}},
+          scales:{x:{grid:{color:grid},ticks:{...tick,maxRotation:0,maxTicksLimit:10}},y:{grid:{color:grid},ticks:tick}},
+          animation:{duration:1200,easing:'easeOutQuart'},
+        }
+      });
+    }
+
+    // Bar
+    const bc = this.barRef.current;
+    if (bc) {
+      this.barChart = new window.Chart(bc, {
+        type:'bar',
+        data: {
+          labels: ['Gols','Assistências','Jogos','Títulos'],
+          datasets: [
+            {label:a.short, data:[a.stats.goals,a.stats.assists,a.stats.games,a.stats.titles], backgroundColor:'rgba(0,255,135,.7)', borderColor:'#00FF87', borderWidth:1, borderRadius:3},
+            {label:b.short, data:[b.stats.goals,b.stats.assists,b.stats.games,b.stats.titles], backgroundColor:'rgba(96,239,255,.7)', borderColor:'#60EFFF', borderWidth:1, borderRadius:3},
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:'rgba(255,255,255,.7)',font:{family:'Space Grotesk',size:12},boxWidth:12}}},
+          scales:{x:{grid:{color:grid},ticks:{color:'rgba(255,255,255,.65)',font:{family:'Space Grotesk',size:12}}},y:{grid:{color:grid},ticks:tick}},
+          animation:{duration:900,easing:'easeOutQuart'},
+        }
+      });
+    }
+  }
+
+  updateCharts() {
+    const {playerA, playerB} = this.state;
+    const a = this.db[playerA], b = this.db[playerB];
+    if (this.radarChart) {
+      const ds = this.radarChart.data.datasets;
+      Object.assign(ds[0], {label:a.short, data:a.radar, borderColor:'#00FF87', backgroundColor:'rgba(0,255,135,.1)', pointBackgroundColor:'#00FF87'});
+      Object.assign(ds[1], {label:b.short, data:b.radar, borderColor:'#60EFFF', backgroundColor:'rgba(96,239,255,.1)', pointBackgroundColor:'#60EFFF'});
+      this.radarChart.update('active');
+    }
+    if (this.timelineChart) {
+      const allY = [...new Set([...a.timeline.map(d=>d[0]),...b.timeline.map(d=>d[0])])].sort((x,y)=>x-y);
+      const aM = Object.fromEntries(a.timeline), bM = Object.fromEntries(b.timeline);
+      this.timelineChart.data.labels = allY;
+      const ds = this.timelineChart.data.datasets;
+      Object.assign(ds[0], {label:a.short, data:allY.map(y=>aM[y]||0)});
+      Object.assign(ds[1], {label:b.short, data:allY.map(y=>bM[y]||0)});
+      this.timelineChart.update('active');
+    }
+    if (this.barChart) {
+      const ds = this.barChart.data.datasets;
+      Object.assign(ds[0], {label:a.short, data:[a.stats.goals,a.stats.assists,a.stats.games,a.stats.titles]});
+      Object.assign(ds[1], {label:b.short, data:[b.stats.goals,b.stats.assists,b.stats.games,b.stats.titles]});
+      this.barChart.update('active');
+    }
+  }
+
+  rollStats() {
+    if (this.statsInterval) clearInterval(this.statsInterval);
+    const {playerA, playerB} = this.state;
+    const a = this.db[playerA], b = this.db[playerB];
+    const dur = 1400, t0 = Date.now();
+    const update = () => {
+      const p = Math.min((Date.now() - t0) / dur, 1);
+      const e = 1 - Math.pow(1 - p, 4);
+      this.setState({
+        dGoalsA:   Math.round(a.stats.goals * e),   dGoalsB:   Math.round(b.stats.goals * e),
+        dAssistsA: Math.round(a.stats.assists * e), dAssistsB: Math.round(b.stats.assists * e),
+        dGamesA:   Math.round(a.stats.games * e),   dGamesB:   Math.round(b.stats.games * e),
+        dTitlesA:  Math.round(a.stats.titles * e),  dTitlesB:  Math.round(b.stats.titles * e),
+      });
+      if (p >= 1) { clearInterval(this.statsInterval); this.statsInterval = null; }
+    };
+    this.statsInterval = setInterval(update, 16);
+  }
+
+  goCompare() {
+    cancelAnimationFrame(this.particleId);
+    this.particleId = null;
+    this.setState({view:'compare'}, () => {
+      setTimeout(() => { this.initCharts(); this.rollStats(); }, 150);
+    });
+  }
+
+  goHome() {
+    if (this.statsInterval) { clearInterval(this.statsInterval); this.statsInterval = null; }
+    this.setState({view:'home'}, () => {
+      this.killCharts();
+      setTimeout(() => this.startParticles(), 0);
+    });
+  }
+
+  pickBattle(a, b) {
+    cancelAnimationFrame(this.particleId);
+    this.particleId = null;
+    this.setState({view:'compare', playerA:a, playerB:b}, () => {
+      setTimeout(() => { this.initCharts(); this.rollStats(); }, 150);
+    });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const a = this.db[s.playerA], b = this.db[s.playerB];
+    const playerList = Object.entries(this.db).map(([v,d])=>({value:v, label:d.name}));
+    return {
+      isHome:    s.view === 'home',
+      isCompare: s.view === 'compare',
+      particlesRef: this.particlesRef,
+      radarRef: this.radarRef,
+      timelineRef: this.timelineRef,
+      barRef: this.barRef,
+      playerA: s.playerA, playerB: s.playerB,
+      playerAName: a.name, playerBName: b.name,
+      playerAShort: a.short, playerBShort: b.short,
+      playerASub: a.sub, playerBSub: b.sub,
+      playerAInitials: a.short.slice(0,2),
+      playerBInitials: b.short.slice(0,2),
+      dGoalsA:   s.dGoalsA,   dGoalsB:   s.dGoalsB,
+      dAssistsA: s.dAssistsA, dAssistsB: s.dAssistsB,
+      dGamesA:   s.dGamesA,   dGamesB:   s.dGamesB,
+      dTitlesA:  s.dTitlesA,  dTitlesB:  s.dTitlesB,
+      playerList,
+      battles: this.battles.map(bx => ({
+        ...bx,
+        nA: this.db[bx.a].short,
+        nB: this.db[bx.b].short,
+        onClick: () => this.pickBattle(bx.a, bx.b),
+      })),
+      onChangeA: e => this.setState({playerA: e.target.value}),
+      onChangeB: e => this.setState({playerB: e.target.value}),
+      goCompare: () => this.goCompare(),
+      goHome:    () => this.goHome(),
+      heatA: a.heat,
+      heatB: b.heat,
+    };
+  }
+}
+</script>
+</body>
+</html>

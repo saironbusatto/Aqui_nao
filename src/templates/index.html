@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AQUI NÃO! - Comparação de Futebol</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="scanline-overlay"></div>
+  <div class="grid-overlay"></div>
+
+  <canvas class="particles-canvas" id="particlesCanvas"></canvas>
+
+  <nav class="nav">
+    <a href="/" class="nav-brand">AQUI NÃO!</a>
+    <div class="nav-links">
+      <div class="nav-link active">JOGADORES</div>
+      <div class="nav-link">TIMES</div>
+      <div class="nav-link">SELEÇÕES</div>
+    </div>
+    <div class="nav-info">BASE DE DADOS MUNDIAL ⚽</div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div style="position:relative">
+      <div class="tag-line">
+        <span class="tag-dot"></span>
+        COMPARE · ANALISE · DECIDA
+      </div>
+
+      <h1 class="hero-title" style="animation-delay:0s">QUEM FOI</h1>
+      <h1 class="hero-title-green" style="animation-delay:.1s">MELHOR?</h1>
+
+      <p class="hero-subtitle">
+        Cruze qualquer campeonato, qualquer época. Dados reais, debate resolvido.
+      </p>
+
+      <form method="POST" action="/compare" id="compareForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" id="player1Selected" name="player1_selected" value="">
+        <input type="hidden" id="player2Selected" name="player2_selected" value="">
+
+        <div class="player-selectors">
+          <div class="player-card">
+            <div class="player-label player-label-a">JOGADOR A</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="player-avatar avatar-a" id="avatarA">--</div>
+              <div style="flex:1;min-width:0">
+                <select class="player-select" id="player1Input" name="player1" required>
+                  <option value="">Selecione...</option>
+                  {% for key, player in players.items() %}
+                  <option value="{{ key }}">{{ player.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="vs-container">
+            <div class="vs-text">VS</div>
+            <div class="vs-line"></div>
+          </div>
+
+          <div class="player-card player-card-b">
+            <div class="player-label player-label-b">JOGADOR B</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="player-avatar avatar-b" id="avatarB">--</div>
+              <div style="flex:1;min-width:0">
+                <select class="player-select" id="player2Input" name="player2" required>
+                  <option value="">Selecione...</option>
+                  {% for key, player in players.items() %}
+                  <option value="{{ key }}">{{ player.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:36px;animation:fadeInUp .7s ease .44s both">
+          <button type="submit" class="cta-btn" id="submitBtn" disabled>COMPARAR AGORA →</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="featured">
+    <div class="featured-header">
+      <div class="featured-label">EM DESTAQUE</div>
+      <h2 class="featured-title">DUELOS ÉPICOS</h2>
+    </div>
+    <div class="battles-grid">
+      <div class="battle-card" onclick="pickBattle('messi','maradona')">
+        <div class="battle-card-bg"></div>
+        <div class="battle-card-glow"></div>
+        <div class="battle-label">A BRIGA ETERNA 🇦🇷</div>
+        <div class="battle-names">
+          <span class="battle-name-a">MESSI</span>
+          <span class="battle-vs">VS</span>
+          <span class="battle-name-b">MARADONA</span>
+        </div>
+        <div class="battle-cta">COMPARAR AGORA →</div>
+      </div>
+      <div class="battle-card" onclick="pickBattle('messi','ronaldo')">
+        <div class="battle-card-bg"></div>
+        <div class="battle-card-glow"></div>
+        <div class="battle-label">O MAIOR DE TODOS ⚽</div>
+        <div class="battle-names">
+          <span class="battle-name-a">MESSI</span>
+          <span class="battle-vs">VS</span>
+          <span class="battle-name-b">CR7</span>
+        </div>
+        <div class="battle-cta">COMPARAR AGORA →</div>
+      </div>
+      <div class="battle-card" onclick="pickBattle('pele','maradona')">
+        <div class="battle-card-bg"></div>
+        <div class="battle-card-glow"></div>
+        <div class="battle-label">PELÉ VS DEUS 👑</div>
+        <div class="battle-names">
+          <span class="battle-name-a">PELÉ</span>
+          <span class="battle-vs">VS</span>
+          <span class="battle-name-b">MARADONA</span>
+        </div>
+        <div class="battle-cta">COMPARAR AGORA →</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">
+    AQUI NÃO! · BASE DE DADOS DO FUTEBOL MUNDIAL · 2025
+  </div>
+
+  <script>
+    const p1Select = document.getElementById('player1Input');
+    const p2Select = document.getElementById('player2Input');
+    const avatarA = document.getElementById('avatarA');
+    const avatarB = document.getElementById('avatarB');
+    const submitBtn = document.getElementById('submitBtn');
+
+    p1Select.addEventListener('change', function() {
+      avatarA.textContent = this.value ? this.value.slice(0,2).toUpperCase() : '--';
+      updateSubmitBtn();
+    });
+    p2Select.addEventListener('change', function() {
+      avatarB.textContent = this.value ? this.value.slice(0,2).toUpperCase() : '--';
+      updateSubmitBtn();
+    });
+
+    function updateSubmitBtn() {
+      submitBtn.disabled = !(p1Select.value && p2Select.value);
+    }
+
+    function pickBattle(a, b) {
+      p1Select.value = a;
+      p2Select.value = b;
+      avatarA.textContent = a.slice(0,2).toUpperCase();
+      avatarB.textContent = b.slice(0,2).toUpperCase();
+      updateSubmitBtn();
+      document.getElementById('compareForm').submit();
+    }
+
+    // Particles
+    const canvas = document.getElementById('particlesCanvas');
+    const ctx = canvas.getContext('2d');
+    let animId;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    const pts = Array.from({length: 75}, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.8 + 0.4,
+      vx: (Math.random() - .5) * .38,
+      vy: (Math.random() - .5) * .38,
+      c: Math.random() > .55 ? '#00FF87' : Math.random() > .5 ? '#60EFFF' : 'rgba(255,255,255,.9)',
+      a: Math.random() * .55 + .12,
+    }));
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      pts.forEach(p => {
+        p.x = (p.x + p.vx + canvas.width) % canvas.width;
+        p.y = (p.y + p.vy + canvas.height) % canvas.height;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, 6.283);
+        ctx.fillStyle = p.c;
+        ctx.globalAlpha = p.a;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+      for (let i = 0; i < pts.length; i++) {
+        for (let j = i + 1; j < pts.length; j++) {
+          const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+          const d = Math.sqrt(dx*dx + dy*dy);
+          if (d < 115) {
+            ctx.beginPath();
+            ctx.moveTo(pts[i].x, pts[i].y);
+            ctx.lineTo(pts[j].x, pts[j].y);
+            ctx.strokeStyle = 'rgba(0,255,135,' + ((1-d/115)*.11) + ')';
+            ctx.lineWidth = .5;
+            ctx.stroke();
+          }
+        }
+      }
+      animId = requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+  </script>
+</body>
+</html>
