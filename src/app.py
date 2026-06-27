@@ -52,21 +52,7 @@ def search_player(name: str) -> Player:
         if key in db_key or db_key in key:
             return player
 
-    try:
-        from src.collectors.transfermarkt_scraper import search_players, scrape_player
-        logger.info("Searching Transfermarkt for: %s", name)
-        results = search_players(name)
-        if results:
-            best = results[0]
-            logger.info("Best match: %s (%s) - %s", best["name"], best["nationality"], best["club"])
-            scraped = scrape_player(best["name"])
-            if scraped:
-                _SEARCH_DB[key] = scraped
-                return scraped
-    except Exception as e:
-        logger.warning("Scraping failed for %s: %s", name, e)
-
-    raise ValueError(f"Jogador não encontrado: {name}. Jogadores disponíveis: {', '.join(sorted(_SEARCH_DB.keys()))}")
+    raise ValueError(f"Jogador não encontrado: {name}")
 
 
 def _resolve_key(name: str) -> str:
@@ -177,9 +163,17 @@ def create_app() -> Flask:
 
         try:
             p1 = search_player(p1_name)
+        except ValueError:
+            msg = f'"{p1_name}" ainda não está na nossa base. Use a busca para encontrar jogadores indexados.'
+            resp = make_response(_render_home(error=msg), 404)
+            resp.content_type = "text/html"
+            return resp
+
+        try:
             p2 = search_player(p2_name)
-        except ValueError as e:
-            resp = make_response(_render_home(error=str(e)), 404)
+        except ValueError:
+            msg = f'"{p2_name}" ainda não está na nossa base. Use a busca para encontrar jogadores indexados.'
+            resp = make_response(_render_home(error=msg), 404)
             resp.content_type = "text/html"
             return resp
 
@@ -239,18 +233,18 @@ def create_app() -> Flask:
         return resp
 
     @app.route("/api/search/<name>")
-    @limiter.limit("10 per minute")
-    @flask_cache.cached(timeout=300, key_prefix=lambda: f"search:{request.view_args['name'].lower()}")
+    @limiter.limit("30 per minute")
     def api_search(name: str):
         if len(name) > 100:
             return jsonify({"results": [], "error": "Nome muito longo."}), 400
-        try:
-            from src.collectors.transfermarkt_scraper import search_players
-            results = search_players(name)
-            return jsonify({"results": results[:10]})
-        except Exception as e:
-            logger.error("Search failed for %s: %s", name, e)
-            return jsonify({"results": [], "error": str(e)}), 500
+        q = name.strip().lower()
+        results = [
+            {"name": p.name, "nationality": p.nationality, "club": p.current_team or ""}
+            for key, p in _SEARCH_DB.items()
+            if q in key or q in (p.current_team or "").lower() or q in p.nationality.lower()
+        ]
+        results.sort(key=lambda r: (not r["name"].lower().startswith(q), r["name"]))
+        return jsonify({"results": results[:10]})
 
     @app.route("/api/player/<name>")
     def api_player(name: str):
