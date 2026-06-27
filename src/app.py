@@ -191,8 +191,25 @@ def create_app() -> Flask:
         report = generate_report(comparison)
         radar_b64 = generate_radar_base64(p1, p2)
 
-        age_data_a = [(s.age, s.goals) for s in p1.career_seasons]
-        age_data_b = [(s.age, s.goals) for s in p2.career_seasons]
+        def _season_age(dob: str, season: str) -> int | None:
+            try:
+                birth_year = int(dob[:4])
+                start_yy = int(season.split("/")[0])
+                start_year = (2000 + start_yy) if start_yy < 100 else start_yy
+                return start_year - birth_year
+            except Exception:
+                return None
+
+        def _age_data(player: Player) -> list[tuple[int, int]]:
+            result = []
+            for s in player.career_seasons:
+                age = s.age if s.age else _season_age(player.date_of_birth, s.season)
+                if age is not None:
+                    result.append((age, s.goals))
+            return result
+
+        age_data_a = _age_data(p1)
+        age_data_b = _age_data(p2)
         season_data_a = [(s.season, s.goals) for s in p1.career_seasons]
         season_data_b = [(s.season, s.goals) for s in p2.career_seasons]
 

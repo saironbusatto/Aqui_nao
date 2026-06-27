@@ -298,7 +298,6 @@
     const legend = {labels:{color:'rgba(255,255,255,.7)',font:{family:'Space Grotesk',size:12},boxWidth:12}};
 
     try {
-      // Bar chart
       new Chart(document.getElementById('barChart'), {
         type: 'bar',
         data: {
@@ -315,8 +314,9 @@
           animation:{duration:1200, easing:'easeOutQuart'},
         }
       });
+    } catch(e) { console.warn('barChart:', e); }
 
-      // Timeline chart
+    try {
       const allSeasons = [...new Set([...seasonDataA.map(d=>d[0]),...seasonDataB.map(d=>d[0])])].sort((a,b)=>a.localeCompare(b));
       const sMapA = Object.fromEntries(seasonDataA);
       const sMapB = Object.fromEntries(seasonDataB);
@@ -336,8 +336,9 @@
           animation:{duration:1200, easing:'easeOutQuart'},
         }
       });
+    } catch(e) { console.warn('timelineChart:', e); }
 
-      // Age comparison chart
+    try {
       const allAges = [...new Set([...ageDataA.map(d=>d[0]),...ageDataB.map(d=>d[0])])].sort((a,b)=>a-b);
       const aMapA = Object.fromEntries(ageDataA);
       const aMapB = Object.fromEntries(ageDataB);
@@ -357,8 +358,9 @@
           animation:{duration:1000, easing:'easeOutQuart'},
         }
       });
+    } catch(e) { console.warn('ageChart:', e); }
 
-      // Projection chart
+    try {
       new Chart(document.getElementById('projectionChart'), {
         type: 'bar',
         data: {
@@ -375,7 +377,7 @@
           animation:{duration:1000, easing:'easeOutQuart'},
         }
       });
-    } catch(e) { console.warn('Charts unavailable:', e); }
+    } catch(e) { console.warn('projectionChart:', e); }
 
     function switchPlayer(num, key) {
       window.location = '/compare?p1=' + (num === 1 ? key : document.getElementById('switchA').value) +
