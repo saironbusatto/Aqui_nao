@@ -17,7 +17,7 @@ def _get_conn():
 
 
 def _row_to_player(row: tuple, seasons: list[tuple], injuries: list[tuple]) -> Player:
-    _, name, full_name, dob, nationality, position, team, market_value, wc_goals, wc_apps, _ = row
+    name, full_name, dob, nationality, position, team, market_value, wc_goals, wc_apps = row
     return Player(
         name=name,
         full_name=full_name or name,
@@ -54,7 +54,11 @@ def load_all_players() -> list[Player] | None:
     try:
         conn = _get_conn()
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM players ORDER BY id")
+            cur.execute(
+                "SELECT id, name, full_name, date_of_birth, nationality, position, "
+                "current_team, market_value, world_cup_goals, world_cup_appearances "
+                "FROM players ORDER BY id"
+            )
             player_rows = cur.fetchall()
             if not player_rows:
                 return None
@@ -86,7 +90,7 @@ def load_all_players() -> list[Player] | None:
         for prow in player_rows:
             pid = prow[0]
             players.append(_row_to_player(
-                prow,
+                prow[1:],
                 seasons_by_player.get(pid, []),
                 injuries_by_player.get(pid, []),
             ))
