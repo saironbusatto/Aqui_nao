@@ -4,7 +4,7 @@ import logging
 import os
 import secrets
 
-from flask import Flask, make_response, render_template, request, jsonify, session
+from flask import Flask, make_response, render_template, request, jsonify, session, redirect, url_for
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -146,6 +146,13 @@ def create_app() -> Flask:
             p1_name = request.form.get("player1_selected", "").strip() or request.form.get("player1", "").strip()
             p2_name = request.form.get("player2_selected", "").strip() or request.form.get("player2", "").strip()
 
+            if not p1_name or not p2_name:
+                resp = make_response(_render_home(error="Selecione dois jogadores para comparar."), 400)
+                resp.content_type = "text/html"
+                return resp
+
+            return redirect(url_for("compare", p1=p1_name, p2=p2_name))
+
         if not p1_name or not p2_name:
             resp = make_response(_render_home(error="Selecione dois jogadores para comparar."), 400)
             resp.content_type = "text/html"
@@ -242,5 +249,26 @@ def create_app() -> Flask:
             "market_value": player.market_value,
             "sponsors": player.sponsors,
         })
+
+    @app.route("/robots.txt")
+    def robots_txt():
+        body = "User-agent: *\nAllow: /\nSitemap: /sitemap.xml\n"
+        return body, 200, {"Content-Type": "text/plain"}
+
+    @app.route("/sitemap.xml")
+    def sitemap_xml():
+        players = sorted(_SEARCH_DB.keys())
+        urls = ["<url><loc>/</loc><changefreq>weekly</changefreq></url>"]
+        for p1 in players:
+            for p2 in players:
+                if p1 < p2:
+                    urls.append(
+                        f"<url><loc>/compare?p1={p1}&amp;p2={p2}</loc>"
+                        f"<changefreq>monthly</changefreq></url>"
+                    )
+        body = '<?xml version="1.0" encoding="UTF-8"?>'
+        body += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        body += "".join(urls) + "</urlset>"
+        return body, 200, {"Content-Type": "application/xml"}
 
     return app

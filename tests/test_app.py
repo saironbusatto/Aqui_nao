@@ -115,13 +115,13 @@ class TestCompareEndpoint:
 
     @pytest.mark.integration
     def test_compare_post_with_valid_players(self, client, sample_player, sample_player_2):
-        with patch("src.app.search_player") as mock_search:
-            mock_search.side_effect = [sample_player, sample_player_2]
-            response = client.post("/compare", data={
-                "player1": "Messi",
-                "player2": "Ronaldo",
-            })
-            assert response.status_code == 200
+        response = client.post("/compare", data={
+            "player1": "Messi",
+            "player2": "Ronaldo",
+        })
+        assert response.status_code == 302
+        assert "p1=Messi" in response.headers["Location"]
+        assert "p2=Ronaldo" in response.headers["Location"]
 
     @pytest.mark.integration
     def test_compare_returns_html(self, client, sample_player, sample_player_2):
@@ -173,10 +173,7 @@ class TestCompareEndpoint:
     def test_compare_player_not_found(self, client):
         with patch("src.app.search_player") as mock_search:
             mock_search.side_effect = ValueError("Player not found: XYZ")
-            response = client.post("/compare", data={
-                "player1": "XYZ",
-                "player2": "Messi",
-            })
+            response = client.get("/compare", query_string={"p1": "XYZ", "p2": "Messi"})
             assert response.status_code in (404, 400)
 
     @pytest.mark.integration
@@ -279,14 +276,11 @@ class TestErrorHandling:
 
     @pytest.mark.integration
     def test_compare_handles_internal_error(self, client, sample_player, sample_player_2):
-        with patch("src.app.search_player") as mock_search:
+        with patch("src.app.search_player") as mock_search, \
+             patch("src.app.compare_players") as mock_compare:
             mock_search.side_effect = [sample_player, sample_player_2]
-        with patch("src.app.compare_players") as mock_compare:
             mock_compare.side_effect = RuntimeError("Internal error")
-            response = client.post("/compare", data={
-                "player1": "Messi",
-                "player2": "Ronaldo",
-            })
+            response = client.get("/compare", query_string={"p1": "Messi", "p2": "Ronaldo"})
             assert response.status_code in (500, 400)
 
     @pytest.mark.integration

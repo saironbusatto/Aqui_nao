@@ -4,6 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ p1.name }} vs {{ p2.name }} - AQUI NÃO!</title>
+  <meta name="description" content="{{ p1.name }} vs {{ p2.name }}: compare gols, assistências, lesões e projeções de carreira no futebol.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="{{ request.host_url }}compare?p1={{ p1_key }}&p2={{ p2_key }}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ p1.name }} vs {{ p2.name }} - AQUI NÃO!">
+  <meta property="og:description" content="{{ p1.name }} ({{ p1.nationality }}) vs {{ p2.name }} ({{ p2.nationality }}): gols, assistências, lesões e projeções de carreira.">
+  <meta property="og:url" content="{{ request.host_url }}compare?p1={{ p1_key }}&p2={{ p2_key }}">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{ p1.name }} vs {{ p2.name }} - AQUI NÃO!">
+  <meta name="twitter:description" content="{{ p1.name }} vs {{ p2.name }}: compare carreiras no futebol.">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -354,6 +365,36 @@
       window.location = '/compare?p1=' + (num === 1 ? key : document.getElementById('switchA').value) +
                         '&p2=' + (num === 2 ? key : document.getElementById('switchB').value);
     }
+
+    (function() {
+      const p1Key = {{ p1_key|tojson }};
+      const p2Key = {{ p2_key|tojson }};
+      const shareUrl = `${location.origin}/compare?p1=${encodeURIComponent(p1Key)}&p2=${encodeURIComponent(p2Key)}`;
+      const shareTitle = {{ (p1.name + ' vs ' + p2.name + ' - AQUI NÃO!')|tojson }};
+
+      const btn = document.querySelector('.topbar-share');
+      if (!btn) return;
+
+      btn.style.cursor = 'pointer';
+
+      btn.addEventListener('click', async () => {
+        if (navigator.share) {
+          try {
+            await navigator.share({ title: shareTitle, url: shareUrl });
+            return;
+          } catch (_) {}
+        }
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          const original = btn.textContent;
+          btn.textContent = 'COPIADO!';
+          btn.style.color = '#00FF87';
+          setTimeout(() => { btn.textContent = original; btn.style.color = ''; }, 2000);
+        } catch (_) {
+          window.prompt('Copie o link:', shareUrl);
+        }
+      });
+    })();
   </script>
 </body>
 </html>
