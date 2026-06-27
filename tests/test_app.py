@@ -11,7 +11,8 @@ from src.app import create_app
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def app():
+def app(monkeypatch):
+    monkeypatch.setenv("SECRET_KEY", "test-secret-key")
     app = create_app()
     app.config["TESTING"] = True
     return app

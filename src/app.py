@@ -10,6 +10,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 from src.data.players import ALIASES, DEFAULT_PLAYERS
+from src.data.postgres_loader import load_all_players
 from src.models.player import Player
 from src.services.comparison_engine import compare_players
 from src.services.projection import calculate_projection
@@ -22,9 +23,16 @@ logger = logging.getLogger(__name__)
 _SEARCH_DB: dict[str, Player] = {}
 
 
-def _init_default_players() -> None:
-    for p in DEFAULT_PLAYERS:
+def _init_players() -> None:
+    pg_players = load_all_players()
+    source = pg_players if pg_players else DEFAULT_PLAYERS
+    for p in source:
         _SEARCH_DB[p.name.lower()] = p
+    logger.info(
+        "Banco de jogadores: %d jogadores (%s)",
+        len(_SEARCH_DB),
+        "Postgres" if pg_players else "local",
+    )
 
 
 def search_player(name: str) -> Player:
@@ -74,7 +82,7 @@ def _resolve_key(name: str) -> str:
     return key
 
 
-_init_default_players()
+_init_players()
 
 
 def create_app() -> Flask:

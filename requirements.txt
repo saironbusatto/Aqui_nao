@@ -8,3 +8,6 @@ flask-limiter
 beautifulsoup4
 lxml
 diskcache
+psycopg2-binary
+soccerplots
+mplsoccer
