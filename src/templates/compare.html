@@ -171,6 +171,20 @@
     </div>
   </div>
 
+  <div class="radar-section">
+    <div class="chart-label">PERFIL ESTATÍSTICO</div>
+    <div class="chart-title">RADAR DE COMPARAÇÃO</div>
+    <div class="radar-wrap">
+      <img src="data:image/png;base64,{{ radar_b64 }}" alt="{{ p1.name }} vs {{ p2.name }} radar chart" class="radar-img">
+    </div>
+    <div class="radar-legend">
+      <span class="radar-legend-dot" style="background:#00FF87"></span>
+      <span class="radar-legend-name" style="color:#00FF87">{{ p1.name }}</span>
+      <span class="radar-legend-dot" style="background:#60EFFF; margin-left:1.5rem"></span>
+      <span class="radar-legend-name" style="color:#60EFFF">{{ p2.name }}</span>
+    </div>
+  </div>
+
   <div class="charts-grid">
     <div class="chart-card">
       <div class="chart-label">ANÁLISE TÉCNICA</div>

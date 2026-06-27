@@ -13,6 +13,7 @@ from src.data.players import ALIASES, DEFAULT_PLAYERS
 from src.models.player import Player
 from src.services.comparison_engine import compare_players
 from src.services.projection import calculate_projection
+from src.services.radar_chart import generate_radar_base64
 from src.services.report import generate_report
 
 logger = logging.getLogger(__name__)
@@ -186,6 +187,7 @@ def create_app() -> Flask:
             return resp
 
         report = generate_report(comparison)
+        radar_b64 = generate_radar_base64(p1, p2)
 
         age_data_a = [(s.age, s.goals) for s in p1.career_seasons]
         age_data_b = [(s.age, s.goals) for s in p2.career_seasons]
@@ -201,6 +203,7 @@ def create_app() -> Flask:
             "compare.html",
             comparison=comparison,
             report=report,
+            radar_b64=radar_b64,
             p1=p1,
             p2=p2,
             p1_key=p1_key,
