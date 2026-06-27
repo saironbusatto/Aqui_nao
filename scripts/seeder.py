@@ -405,8 +405,10 @@ def _extract_seasons(session: requests.Session, profile_url: str) -> list[dict]:
         key = (season_name, club_id)
 
         by_key[key]["appearances"] += 1
-        by_key[key]["goals"] += goal.get("goalsScoredTotalOfficial", 0) or 0
-        by_key[key]["assists"] += goal.get("assistsOfficial", 0) or 0
+        goals = goal.get("goalsScoredTotalOfficial") if goal.get("goalsScoredTotalOfficial") is not None else goal.get("goalsScoredTotal", 0)
+        assists = goal.get("assistsOfficial") if goal.get("assistsOfficial") is not None else goal.get("assists", 0)
+        by_key[key]["goals"] += goals or 0
+        by_key[key]["assists"] += assists or 0
         by_key[key]["club_id"] = club_id
         by_key[key]["season"] = season_name
 
