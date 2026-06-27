@@ -5,6 +5,7 @@ import os
 import secrets
 
 from flask import Flask, make_response, render_template, request, jsonify, session, redirect, url_for
+from flask_caching import Cache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -83,6 +84,13 @@ def create_app() -> Flask:
     app.secret_key = secret_key
 
     limiter = Limiter(app=app, key_func=get_remote_address, default_limits=[])
+
+    app.config["CACHE_TYPE"] = "FileSystemCache"
+    app.config["CACHE_DIR"] = str(
+        __import__("pathlib").Path(__file__).parent.parent / "data" / "flask_cache"
+    )
+    app.config["CACHE_DEFAULT_TIMEOUT"] = 300
+    flask_cache = Cache(app)
 
     @app.after_request
     def _set_security_headers(response):
@@ -221,6 +229,7 @@ def create_app() -> Flask:
 
     @app.route("/api/search/<name>")
     @limiter.limit("10 per minute")
+    @flask_cache.cached(timeout=300, key_prefix=lambda: f"search:{request.view_args['name'].lower()}")
     def api_search(name: str):
         if len(name) > 100:
             return jsonify({"results": [], "error": "Nome muito longo."}), 400

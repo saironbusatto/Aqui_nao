@@ -3,6 +3,8 @@ requests
 pandas
 matplotlib
 flask
+flask-caching
 flask-limiter
 beautifulsoup4
 lxml
+diskcache
