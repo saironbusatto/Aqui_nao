@@ -181,7 +181,7 @@
   </div>
 
   <script>
-    const allPlayers = {{ all_players_json|safe }};
+    const allPlayers = {{ all_players|tojson }};
 
     let selectedP1 = null;
     let selectedP2 = null;

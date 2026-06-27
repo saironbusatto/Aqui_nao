@@ -9,6 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from src.models.player import Player, SeasonStats, Injury
+from src.utils.cache import get_cached, set_cached
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,10 @@ def search_players(name: str) -> list[dict]:
     Returns list of dicts with 'name', 'url', 'nationality', 'club'.
     Prioritizes Brazilian players.
     """
+    cached = get_cached("search", name.lower())
+    if cached is not None:
+        return cached
+
     search_url = f"{BASE_URL}/schnellsuche/ergebnis/schnellsuche"
     try:
         soup = _get_soup(f"{search_url}?query={quote(name)}")
@@ -112,7 +117,9 @@ def search_players(name: str) -> list[dict]:
     br = [p for p in players if "brazil" in p["nationality"].lower() or "brasil" in p["nationality"].lower()]
     others = [p for p in players if p not in br]
 
-    return br + others
+    result = br + others
+    set_cached("search", name.lower(), result)
+    return result
 
 
 def scrape_player_profile(url: str) -> dict | None:
@@ -285,6 +292,11 @@ def scrape_injuries(url: str) -> tuple[Injury, ...]:
 
 def scrape_player(name: str) -> Player | None:
     """Full scrape: search, get profile, stats, and injuries."""
+    cache_key = name.lower()
+    cached = get_cached("player", cache_key)
+    if cached is not None:
+        return Player(**{k: tuple(v) if isinstance(v, list) else v for k, v in cached.items()})
+
     url = search_player_url(name)
     if not url:
         logger.warning("No URL found for player: %s", name)
@@ -299,7 +311,7 @@ def scrape_player(name: str) -> Player | None:
 
     display_name = name.title()
 
-    return Player(
+    player = Player(
         name=display_name,
         full_name=profile.get("full_name", display_name),
         date_of_birth=profile.get("date_of_birth", ""),
@@ -311,3 +323,7 @@ def scrape_player(name: str) -> Player | None:
         career_seasons=career,
         injuries=injuries,
     )
+
+    import dataclasses
+    set_cached("player", cache_key, dataclasses.asdict(player))
+    return player

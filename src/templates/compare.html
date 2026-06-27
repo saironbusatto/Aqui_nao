@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -276,8 +276,8 @@
       data: {
         labels: ['Gols','Assistências','Jogos','Minutos (÷100)'],
         datasets: [
-          {label:'{{ p1.name }}', data:[statsA.goals, statsA.assists, statsA.appearances, Math.round(statsA.minutes/100)], backgroundColor:'rgba(0,255,135,.7)', borderColor:'#00FF87', borderWidth:1, borderRadius:3},
-          {label:'{{ p2.name }}', data:[statsB.goals, statsB.assists, statsB.appearances, Math.round(statsB.minutes/100)], backgroundColor:'rgba(96,239,255,.7)', borderColor:'#60EFFF', borderWidth:1, borderRadius:3},
+          {label:{{ p1.name|tojson }}, data:[statsA.goals, statsA.assists, statsA.appearances, Math.round(statsA.minutes/100)], backgroundColor:'rgba(0,255,135,.7)', borderColor:'#00FF87', borderWidth:1, borderRadius:3},
+          {label:{{ p2.name|tojson }}, data:[statsB.goals, statsB.assists, statsB.appearances, Math.round(statsB.minutes/100)], backgroundColor:'rgba(96,239,255,.7)', borderColor:'#60EFFF', borderWidth:1, borderRadius:3},
         ]
       },
       options: {
@@ -297,8 +297,8 @@
       data: {
         labels: allSeasons,
         datasets: [
-          {label:'{{ p1.name }}', data:allSeasons.map(s=>sMapA[s]||0), borderColor:'#00FF87', backgroundColor:'rgba(0,255,135,.12)', fill:true, tension:.4, borderWidth:2.5, pointRadius:0, pointHoverRadius:6},
-          {label:'{{ p2.name }}', data:allSeasons.map(s=>sMapB[s]||0), borderColor:'#60EFFF', backgroundColor:'rgba(96,239,255,.12)', fill:true, tension:.4, borderWidth:2.5, pointRadius:0, pointHoverRadius:6},
+          {label:{{ p1.name|tojson }}, data:allSeasons.map(s=>sMapA[s]||0), borderColor:'#00FF87', backgroundColor:'rgba(0,255,135,.12)', fill:true, tension:.4, borderWidth:2.5, pointRadius:0, pointHoverRadius:6},
+          {label:{{ p2.name|tojson }}, data:allSeasons.map(s=>sMapB[s]||0), borderColor:'#60EFFF', backgroundColor:'rgba(96,239,255,.12)', fill:true, tension:.4, borderWidth:2.5, pointRadius:0, pointHoverRadius:6},
         ]
       },
       options: {
@@ -318,8 +318,8 @@
       data: {
         labels: allAges.map(a => a + ' anos'),
         datasets: [
-          {label:'{{ p1.name }}', data:allAges.map(a=>aMapA[a]||0), backgroundColor:'rgba(0,255,135,.6)', borderColor:'#00FF87', borderWidth:1, borderRadius:3},
-          {label:'{{ p2.name }}', data:allAges.map(a=>aMapB[a]||0), backgroundColor:'rgba(96,239,255,.6)', borderColor:'#60EFFF', borderWidth:1, borderRadius:3},
+          {label:{{ p1.name|tojson }}, data:allAges.map(a=>aMapA[a]||0), backgroundColor:'rgba(0,255,135,.6)', borderColor:'#00FF87', borderWidth:1, borderRadius:3},
+          {label:{{ p2.name|tojson }}, data:allAges.map(a=>aMapB[a]||0), backgroundColor:'rgba(96,239,255,.6)', borderColor:'#60EFFF', borderWidth:1, borderRadius:3},
         ]
       },
       options: {
@@ -336,8 +336,8 @@
       data: {
         labels: ['Atual', 'Aos 30', 'Aos 35', 'Aos 40'],
         datasets: [
-          {label:'{{ p1.name }}', data:[proj1.current, proj1.at_30, proj1.at_35, proj1.at_40], backgroundColor:'rgba(0,255,135,.6)', borderColor:'#00FF87', borderWidth:1, borderRadius:3},
-          {label:'{{ p2.name }}', data:[proj2.current, proj2.at_30, proj2.at_35, proj2.at_40], backgroundColor:'rgba(96,239,255,.6)', borderColor:'#60EFFF', borderWidth:1, borderRadius:3},
+          {label:{{ p1.name|tojson }}, data:[proj1.current, proj1.at_30, proj1.at_35, proj1.at_40], backgroundColor:'rgba(0,255,135,.6)', borderColor:'#00FF87', borderWidth:1, borderRadius:3},
+          {label:{{ p2.name|tojson }}, data:[proj2.current, proj2.at_30, proj2.at_35, proj2.at_40], backgroundColor:'rgba(96,239,255,.6)', borderColor:'#60EFFF', borderWidth:1, borderRadius:3},
         ]
       },
       options: {

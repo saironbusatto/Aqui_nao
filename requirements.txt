@@ -2,9 +2,7 @@ soccerdata>=1.9.0
 requests
 pandas
 matplotlib
-mplsoccer
 flask
+flask-limiter
 beautifulsoup4
 lxml
-pytest
-pytest-cov
