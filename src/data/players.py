@@ -36,6 +36,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2015-2016", "Knee injury", "2016-04-05", "2016-05-15", 40, 5),
             Injury("2018-2019", "Hamstring", "2019-03-01", "2019-03-18", 17, 3),
         ),
+        social_media={"instagram": "leomessi", "twitter": "Messi10stats"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/c/c1/Lionel_Messi_20180626.jpg",
     ),
     Player(
         name="Ronaldo", full_name="Cristiano Ronaldo dos Santos Aveiro",
@@ -72,6 +74,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2013-2014", "Knee", "2014-05-04", "2014-05-15", 11, 2),
             Injury("2019-2020", "Knee", "2019-10-08", "2019-10-25", 17, 3),
         ),
+        social_media={"instagram": "cristiano", "twitter": "Cristiano"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/8/8c/Cristiano_Ronaldo_2018.jpg",
     ),
     Player(
         name="Kaka", full_name="Ricardo Izecson dos Santos Leite",
@@ -99,6 +103,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2010-2011", "Groin", "2010-09-15", "2010-11-20", 66, 8),
             Injury("2011-2012", "Knee", "2012-01-10", "2012-02-15", 36, 5),
         ),
+        social_media={"instagram": "kaka", "twitter": "KAKA"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/9/9e/Kak%C3%A1_2017.jpg",
     ),
     Player(
         name="Neymar", full_name="Neymar da Silva Santos Júnior",
@@ -130,6 +136,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2019-2020", "Metatarsal", "2020-02-02", "2020-04-25", 83, 11),
             Injury("2022-2023", "Ankle", "2023-02-15", "2023-04-15", 59, 8),
         ),
+        social_media={"instagram": "neymarjr", "twitter": "NeymarJr"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/b/b9/Neymar_2018.jpg",
     ),
     Player(
         name="Mbappe", full_name="Kylian Mbappé Lottin",
@@ -152,6 +160,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2018-2019", "Hamstring", "2019-03-05", "2019-03-25", 20, 3),
             Injury("2022-2023", "Hamstring", "2023-02-05", "2023-02-25", 20, 3),
         ),
+        social_media={"instagram": "k.mbappe", "twitter": "KMbappe"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/5/57/Kylian_Mbapp%C3%A9_2018.jpg",
     ),
     Player(
         name="Haaland", full_name="Erling Braut Haaland",
@@ -173,6 +183,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2019-2020", "Knee", "2020-02-12", "2020-03-15", 32, 4),
             Injury("2022-2023", "Groin", "2023-01-15", "2023-02-08", 24, 3),
         ),
+        social_media={"instagram": "erling.haaland", "twitter": "ErlingHaaland"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/3/3f/Erling_Haaland_2023_%28cropped%29.jpg",
     ),
     Player(
         name="Lewandowski", full_name="Robert Lewandowski",
@@ -204,6 +216,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2018-2019", "Knee", "2019-03-01", "2019-03-15", 14, 2),
             Injury("2021-2022", "Hamstring", "2022-01-15", "2022-02-05", 21, 3),
         ),
+        social_media={"instagram": "robertlewandowski", "twitter": "lewy_official"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/2/28/Robert_Lewandowski_2022.jpg",
     ),
     Player(
         name="Ronaldinho", full_name="Ronaldo de Assis Moreira",
@@ -230,6 +244,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2006-2007", "Hamstring", "2007-02-01", "2007-03-10", 37, 5),
             Injury("2008-2009", "Knee", "2009-01-15", "2009-02-20", 36, 5),
         ),
+        social_media={"instagram": "ronaldinho", "twitter": "10Ronaldinho"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/e/e9/Ronaldinho_2011.jpg",
     ),
     Player(
         name="Pele", full_name="Edson Arantes do Nascimento",
@@ -261,6 +277,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
         ),
         world_cup_goals=12, world_cup_appearances=14,
         injuries=(),
+        social_media={"instagram": "pele", "twitter": "Pele"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/5/5e/Pele_1960.jpg",
     ),
     Player(
         name="Maradona", full_name="Diego Armando Maradona",
@@ -292,6 +310,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("1982-1983", "Knee", "1983-09-24", "1983-12-10", 77, 10),
             Injury("1990-1991", "Knee", "1990-09-01", "1990-10-15", 44, 6),
         ),
+        social_media={"instagram": "maradona", "twitter": "maradona"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/2/2c/Maradona_Mundial_1986.jpg",
     ),
     Player(
         name="Zidane", full_name="Zinedine Yazid Zidane",
@@ -323,6 +343,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("1998-1999", "Hamstring", "1999-02-15", "1999-03-20", 33, 4),
             Injury("2001-2002", "Ankle", "2002-02-01", "2002-02-25", 24, 3),
         ),
+        social_media={"instagram": "zidane", "twitter": "zidane"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/f/f3/Zinedine_Zidane_2017.jpg",
     ),
     Player(
         name="Ronaldo9", full_name="Ronaldo Luís Nazário de Lima",
@@ -356,6 +378,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2000-2001", "Knee", "2000-04-20", "2001-09-25", 523, 60),
             Injury("2007-2008", "Knee", "2008-02-15", "2008-04-10", 55, 7),
         ),
+        social_media={"instagram": "ronaldo", "twitter": "Ronaldo"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/5/5c/Ronaldo_%28footballer%29_2019_%28cropped%29.jpg",
     ),
     Player(
         name="Henry", full_name="Thierry Daniel Henry",
@@ -387,6 +411,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2001-2002", "Hamstring", "2002-01-10", "2002-02-05", 26, 3),
             Injury("2005-2006", "Hamstring", "2006-01-15", "2006-02-10", 26, 3),
         ),
+        social_media={"instagram": "thierryhenry", "twitter": "ThierryHenry"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/5/59/Thierry_Henry_2018.jpg",
     ),
     Player(
         name="Ibrahimovic", full_name="Zlatan Ibrahimović",
@@ -424,6 +450,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2017-2018", "Knee", "2018-03-01", "2018-04-10", 40, 5),
             Injury("2019-2020", "Knee", "2020-01-01", "2020-02-15", 45, 6),
         ),
+        social_media={"instagram": "zlatanibrahimovic", "twitter": "Ibra_official"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/3/3b/Zlatan_Ibrahimovi%C4%87_2019.jpg",
     ),
     Player(
         name="Vinicius", full_name="Vinicius José Paixão de Oliveira Júnior",
@@ -442,6 +470,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
         injuries=(
             Injury("2022-2023", "Hamstring", "2022-11-09", "2022-12-20", 41, 5),
         ),
+        social_media={"instagram": "vinijr", "twitter": "vinijr"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/9/94/Vinicius_Jr._2021.jpg",
     ),
     Player(
         name="Salah", full_name="Mohamed Salah Ghaly",
@@ -468,6 +498,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2017-2018", "Shoulder", "2018-05-26", "2018-06-20", 25, 4),
             Injury("2021-2022", "Hamstring", "2022-01-12", "2022-02-08", 27, 4),
         ),
+        social_media={"instagram": "mosalah", "twitter": "MoSalah"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/c/c3/Mohamed_Salah_2018.jpg",
     ),
     Player(
         name="Modric", full_name="Luka Modrić",
@@ -502,6 +534,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2015-2016", "Hamstring", "2015-11-01", "2015-11-22", 21, 3),
             Injury("2018-2019", "Thigh", "2019-02-05", "2019-02-25", 20, 3),
         ),
+        social_media={"instagram": "lukamodric", "twitter": "lukamodric"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/e/e4/Luka_Modric_2018.jpg",
     ),
     Player(
         name="De Bruyne", full_name="Kevin De Bruyne",
@@ -531,6 +565,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2020-2021", "Hamstring", "2021-02-13", "2021-04-20", 66, 9),
             Injury("2023-2024", "Hamstring", "2023-08-12", "2024-02-01", 173, 22),
         ),
+        social_media={"instagram": "kevindebruyne", "twitter": "DeBruyneKevin"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/9/9d/Kevin_De_Bruyne_2018.jpg",
     ),
     Player(
         name="Bellingham", full_name="Jude Victor William Bellingham",
@@ -548,6 +584,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
         injuries=(
             Injury("2023-2024", "Ankle", "2024-10-05", "2024-11-15", 41, 5),
         ),
+        social_media={"instagram": "judebellingham", "twitter": "BellinghamJude"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/4/44/Jude_Bellingham_2023.jpg",
     ),
     Player(
         name="Xavi", full_name="Xavier Hernández Creus",
@@ -579,6 +617,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2006-2007", "Hamstring", "2006-10-01", "2006-11-15", 45, 6),
             Injury("2012-2013", "Muscle", "2013-02-10", "2013-03-10", 28, 4),
         ),
+        social_media={"instagram": "xavi", "twitter": "Xavi"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/7/7b/Xavi_2015.jpg",
     ),
     Player(
         name="Iniesta", full_name="Andrés Iniesta Luján",
@@ -612,6 +652,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2006-2007", "Knee", "2006-11-20", "2007-01-15", 56, 7),
             Injury("2013-2014", "Hamstring", "2013-10-05", "2013-12-01", 57, 8),
         ),
+        social_media={"instagram": "andresiniesta", "twitter": "andresiniesta"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/6/6b/Andres_Iniesta_2018.jpg",
     ),
     Player(
         name="Benzema", full_name="Karim Mostafa Benzema",
@@ -645,6 +687,8 @@ DEFAULT_PLAYERS: tuple[Player, ...] = (
             Injury("2018-2019", "Groin", "2019-01-05", "2019-02-05", 31, 4),
             Injury("2020-2021", "Knee", "2021-03-01", "2021-03-20", 19, 3),
         ),
+        social_media={"instagram": "karimbenzema", "twitter": "Benzema"},
+        profile_image_url="https://upload.wikimedia.org/wikipedia/commons/4/4e/Karim_Benzema_2021.jpg",
     ),
 )
 

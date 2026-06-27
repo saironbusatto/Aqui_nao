@@ -97,7 +97,7 @@ def create_app() -> Flask:
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
-            "img-src 'self' data:; "
+            "img-src 'self' data: https://upload.wikimedia.org; "
             "connect-src 'self'; "
             "frame-src 'none'; "
             "object-src 'none';"
@@ -115,7 +115,12 @@ def create_app() -> Flask:
 
     def _build_players_list() -> list[dict]:
         return [
-            {"key": k, "name": v.name, "nationality": v.nationality, "team": v.current_team or ""}
+            {
+                "key": k, "name": v.name, "nationality": v.nationality,
+                "team": v.current_team or "",
+                "profile_image_url": v.profile_image_url,
+                "social_media": v.social_media,
+            }
             for k, v in sorted(_SEARCH_DB.items())
         ]
 
@@ -256,7 +261,8 @@ def create_app() -> Flask:
             return jsonify({"results": [], "error": "Nome muito longo."}), 400
         q = name.strip().lower()
         results = [
-            {"name": p.name, "nationality": p.nationality, "club": p.current_team or ""}
+            {"name": p.name, "nationality": p.nationality, "club": p.current_team or "",
+             "profile_image_url": p.profile_image_url}
             for key, p in _SEARCH_DB.items()
             if q in key or q in (p.current_team or "").lower() or q in p.nationality.lower()
         ]
@@ -279,6 +285,8 @@ def create_app() -> Flask:
             "current_team": player.current_team,
             "market_value": player.market_value,
             "sponsors": player.sponsors,
+            "profile_image_url": player.profile_image_url,
+            "social_media": player.social_media,
         })
 
     @app.route("/robots.txt")

@@ -45,6 +45,8 @@ class Player:
     injuries: tuple[Injury, ...] = field(default_factory=tuple)
     world_cup_goals: int = 0
     world_cup_appearances: int = 0
+    social_media: dict[str, str] = field(default_factory=dict)
+    profile_image_url: Optional[str] = None
 
     @property
     def age(self) -> int:

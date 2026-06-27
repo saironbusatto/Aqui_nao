@@ -385,10 +385,13 @@
         const initials = p.name.slice(0, 2).toUpperCase();
         const avatarClass = playerNum === 1 ? 'green' : 'cyan';
         const meta = p.nationality + (p.team ? ' · ' + p.team : '');
+        const avatarHtml = p.profile_image_url
+          ? `<img class="avatar-img" src="${p.profile_image_url}" alt="${p.name}">`
+          : initials;
         return `
           <div class="search-result-item" data-key="${p.key}" data-num="${playerNum}"
                data-name="${p.name}" data-meta="${meta}">
-            <div class="result-avatar ${avatarClass}">${initials}</div>
+            <div class="result-avatar ${avatarClass}">${avatarHtml}</div>
             <div class="result-info">
               <div class="result-name">${p.name}</div>
               <div class="result-meta">${meta}</div>
@@ -412,9 +415,14 @@
 
       const avatarClass = num === 1 ? 'green' : 'cyan';
       const borderClass = num === 1 ? '' : ' search-selected-b';
+      const selectedPlayer = allPlayers.find(p => p.key === key);
+      const avatarContent = (selectedPlayer && selectedPlayer.profile_image_url)
+        ? `<img class="avatar-img" src="${selectedPlayer.profile_image_url}" alt="${name}">`
+        : name.slice(0,2).toUpperCase();
+
       selectedEl.innerHTML = `
         <div class="search-selected${borderClass}">
-          <div class="result-avatar ${avatarClass}">${name.slice(0,2).toUpperCase()}</div>
+          <div class="result-avatar ${avatarClass}">${avatarContent}</div>
           <div class="result-info">
             <div class="result-name">${name}</div>
             <div class="result-meta">${nationality} · ${team}</div>
