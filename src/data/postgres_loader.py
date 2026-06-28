@@ -20,8 +20,10 @@ def _row_to_player(row: tuple, seasons: list[tuple], injuries: list[tuple]) -> P
     name, full_name, dob, nationality, position, team, market_value, wc_goals, wc_apps, social_raw, img_raw = row
     social_media: dict[str, str] = {}
     if social_raw:
-        import json
-        social_media = {k: str(v) for k, v in json.loads(social_raw).items()}
+        if isinstance(social_raw, str):
+            import json
+            social_raw = json.loads(social_raw)
+        social_media = {k: str(v) for k, v in social_raw.items()}
     return Player(
         name=name,
         full_name=full_name or name,
