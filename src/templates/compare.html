@@ -25,7 +25,7 @@
   <div class="scanline-overlay"></div>
 
   <div class="topbar">
-    <button class="topbar-back" onclick="window.location='/'">← AQUI NÃO!</button>
+    <button class="topbar-back" id="topbarBack">← AQUI NÃO!</button>
     <div class="topbar-title">
       <span style="color:#00FF87">{{ p1.name|upper }}</span>
       <span style="color:rgba(255,255,255,.2);margin:0 12px">VS</span>
@@ -60,7 +60,7 @@
           </div>
           <div class="panel-switch">
             <span class="panel-switch-label">TROCAR</span>
-            <select class="panel-switch-select" id="switchA" onchange="switchPlayer(1, this.value)">
+            <select class="panel-switch-select" id="switchA" data-switch="1">
               {% for key, player in players.items() %}
               <option value="{{ key }}" {{ 'selected' if key == p1_key }}>{{ player.name }}</option>
               {% endfor %}
@@ -115,7 +115,7 @@
           </div>
           <div class="panel-switch" style="margin-left:auto">
             <span class="panel-switch-label">TROCAR</span>
-            <select class="panel-switch-select" id="switchB" onchange="switchPlayer(2, this.value)">
+            <select class="panel-switch-select" id="switchB" data-switch="2">
               {% for key, player in players.items() %}
               <option value="{{ key }}" {{ 'selected' if key == p2_key }}>{{ player.name }}</option>
               {% endfor %}
@@ -251,7 +251,7 @@
     <div class="report-content">{{ report }}</div>
   </div>
 
-  <script>
+  <script nonce="{{ csp_nonce }}">
     const statsA = {
       goals: {{ p1.total_goals }},
       assists: {{ p1.total_assists }},
@@ -413,6 +413,11 @@
       window.location = '/compare?p1=' + (num === 1 ? key : document.getElementById('switchA').value) +
                         '&p2=' + (num === 2 ? key : document.getElementById('switchB').value);
     }
+
+    document.getElementById('topbarBack').addEventListener('click', () => { window.location = '/'; });
+    document.querySelectorAll('.panel-switch-select').forEach(sel => {
+      sel.addEventListener('change', () => switchPlayer(Number(sel.dataset.switch), sel.value));
+    });
 
     (function() {
       const p1Key = {{ p1_key|tojson }};

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any
 
 from src.models.player import Injury, Player, SeasonStats
 
@@ -14,6 +13,12 @@ _DATABASE_URL = os.environ.get("DATABASE_URL")
 def _get_conn():
     import psycopg2
     return psycopg2.connect(_DATABASE_URL, connect_timeout=5)
+
+
+def _safe_image_url(url: str | None) -> str | None:
+    if url and url.startswith("https://"):
+        return url
+    return None
 
 
 def _row_to_player(row: tuple, seasons: list[tuple], injuries: list[tuple]) -> Player:
@@ -35,7 +40,7 @@ def _row_to_player(row: tuple, seasons: list[tuple], injuries: list[tuple]) -> P
         world_cup_goals=wc_goals or 0,
         world_cup_appearances=wc_apps or 0,
         social_media=social_media,
-        profile_image_url=img_raw,
+        profile_image_url=_safe_image_url(img_raw),
         career_seasons=tuple(
             SeasonStats(
                 season=s[0], team=s[1], age=s[2],
@@ -61,31 +66,32 @@ def load_all_players() -> list[Player] | None:
         return None
     try:
         conn = _get_conn()
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT id, name, full_name, date_of_birth, nationality, position, "
-                "current_team, market_value, world_cup_goals, world_cup_appearances, "
-                "social_media, profile_image_url "
-                "FROM players ORDER BY id"
-            )
-            player_rows = cur.fetchall()
-            if not player_rows:
-                return None
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id, name, full_name, date_of_birth, nationality, position, "
+                    "current_team, market_value, world_cup_goals, world_cup_appearances, "
+                    "social_media, profile_image_url "
+                    "FROM players ORDER BY id"
+                )
+                player_rows = cur.fetchall()
+                if not player_rows:
+                    return None
 
-            cur.execute(
-                "SELECT player_id, season, team, age, appearances, starts, "
-                "minutes_played, goals, assists, yellow_cards, red_cards "
-                "FROM season_stats ORDER BY player_id, season"
-            )
-            all_seasons = cur.fetchall()
+                cur.execute(
+                    "SELECT player_id, season, team, age, appearances, starts, "
+                    "minutes_played, goals, assists, yellow_cards, red_cards "
+                    "FROM season_stats ORDER BY player_id, season"
+                )
+                all_seasons = cur.fetchall()
 
-            cur.execute(
-                "SELECT player_id, season, injury_type, date_from, date_until, "
-                "days_missed, games_missed FROM injuries ORDER BY player_id"
-            )
-            all_injuries = cur.fetchall()
-
-        conn.close()
+                cur.execute(
+                    "SELECT player_id, season, injury_type, date_from, date_until, "
+                    "days_missed, games_missed FROM injuries ORDER BY player_id"
+                )
+                all_injuries = cur.fetchall()
+        finally:
+            conn.close()
 
         seasons_by_player: dict[int, list] = {}
         for row in all_seasons:

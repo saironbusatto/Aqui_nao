@@ -5,8 +5,7 @@ import os
 import secrets
 from dataclasses import replace
 
-from flask import Flask, make_response, render_template, request, jsonify, session, redirect, url_for
-from flask_caching import Cache
+from flask import Flask, make_response, render_template, request, jsonify, session, redirect, url_for, g
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -79,7 +78,38 @@ def _resolve_key(name: str) -> str:
     return key
 
 
-_init_players()
+def _html_response(html: str, status: int = 200):
+    resp = make_response(html, status)
+    resp.content_type = "text/html"
+    return resp
+
+
+def _season_age(dob: str, season: str) -> int | None:
+    try:
+        birth_year = int(dob[:4])
+        start_yy = int(season.split("/")[0])
+        start_year = (2000 + start_yy) if start_yy < 100 else start_yy
+        return start_year - birth_year
+    except (ValueError, IndexError):
+        return None
+
+
+def _age_data(player: Player) -> list[tuple[int, int]]:
+    result = []
+    for s in player.career_seasons:
+        age = s.age if s.age else _season_age(player.date_of_birth, s.season)
+        if age is not None:
+            result.append((age, s.goals))
+    return result
+
+
+def _projection_dict(proj) -> dict[str, int]:
+    return {
+        "current": proj.current_goals,
+        "at_30": proj.projected_goals_at_30,
+        "at_35": proj.projected_goals_at_35,
+        "at_40": proj.projected_goals_at_40,
+    }
 
 
 def create_app() -> Flask:
@@ -89,23 +119,26 @@ def create_app() -> Flask:
         raise RuntimeError("SECRET_KEY environment variable must be set")
     app.secret_key = secret_key
 
-    limiter = Limiter(app=app, key_func=get_remote_address, default_limits=[])
+    if not _SEARCH_DB:
+        _init_players()
 
-    app.config["CACHE_TYPE"] = "FileSystemCache"
-    app.config["CACHE_DIR"] = str(
-        __import__("pathlib").Path(__file__).parent.parent / "data" / "flask_cache"
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["200 per hour"],
+        storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"),
+        enabled=not app.config.get("TESTING", False),
     )
-    app.config["CACHE_DEFAULT_TIMEOUT"] = 300
-    flask_cache = Cache(app)
 
     @app.after_request
     def _set_security_headers(response):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        nonce = getattr(g, "csp_nonce", "")
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
             "img-src 'self' data: https://upload.wikimedia.org https://img.a.transfermarkt.technology; "
@@ -117,12 +150,16 @@ def create_app() -> Flask:
 
     @app.before_request
     def _generate_csrf_token():
+        g.csp_nonce = secrets.token_urlsafe(16)
         if "csrf_token" not in session:
             session["csrf_token"] = secrets.token_hex(32)
 
     @app.context_processor
     def inject_csrf_token():
-        return {"csrf_token": session.get("csrf_token", "")}
+        return {
+            "csrf_token": session.get("csrf_token", ""),
+            "csp_nonce": getattr(g, "csp_nonce", ""),
+        }
 
     def _build_players_list() -> list[dict]:
         return [
@@ -140,130 +177,65 @@ def create_app() -> Flask:
 
     @app.route("/")
     def home():
-        html = _render_home()
-        resp = make_response(html)
-        resp.content_type = "text/html"
-        return resp
+        return _html_response(_render_home())
+
+    def _resolve_players(p1_name: str, p2_name: str):
+        players = []
+        for name in (p1_name, p2_name):
+            try:
+                players.append(search_player(name))
+            except ValueError:
+                msg = f'"{name}" ainda não está na nossa base. Use a busca para encontrar jogadores indexados.'
+                return None, None, _html_response(_render_home(error=msg), 404)
+        return players[0], players[1], None
 
     @app.route("/compare", methods=["GET", "POST"])
+    @limiter.limit("20 per minute")
     def compare():
-        if request.method == "GET":
-            p1_name = request.args.get("p1", "").strip()
-            p2_name = request.args.get("p2", "").strip()
-            if not p1_name or not p2_name:
-                resp = make_response(_render_home())
-                resp.content_type = "text/html"
-                return resp
-        else:
+        if request.method == "POST":
             if not app.config.get("TESTING"):
                 csrf_token = request.form.get("csrf_token", "")
                 if not csrf_token or csrf_token != session.get("csrf_token"):
-                    resp = make_response(_render_home(error="Token CSRF inválido."), 403)
-                    resp.content_type = "text/html"
-                    return resp
-
+                    return _html_response(_render_home(error="Token CSRF inválido."), 403)
             p1_name = request.form.get("player1_selected", "").strip() or request.form.get("player1", "").strip()
             p2_name = request.form.get("player2_selected", "").strip() or request.form.get("player2", "").strip()
-
             if not p1_name or not p2_name:
-                resp = make_response(_render_home(error="Selecione dois jogadores para comparar."), 400)
-                resp.content_type = "text/html"
-                return resp
-
+                return _html_response(_render_home(error="Selecione dois jogadores para comparar."), 400)
             return redirect(url_for("compare", p1=p1_name, p2=p2_name))
 
+        p1_name = request.args.get("p1", "").strip()
+        p2_name = request.args.get("p2", "").strip()
         if not p1_name or not p2_name:
-            resp = make_response(_render_home(error="Selecione dois jogadores para comparar."), 400)
-            resp.content_type = "text/html"
-            return resp
+            return _html_response(_render_home())
 
-        try:
-            p1 = search_player(p1_name)
-        except ValueError:
-            msg = f'"{p1_name}" ainda não está na nossa base. Use a busca para encontrar jogadores indexados.'
-            resp = make_response(_render_home(error=msg), 404)
-            resp.content_type = "text/html"
-            return resp
-
-        try:
-            p2 = search_player(p2_name)
-        except ValueError:
-            msg = f'"{p2_name}" ainda não está na nossa base. Use a busca para encontrar jogadores indexados.'
-            resp = make_response(_render_home(error=msg), 404)
-            resp.content_type = "text/html"
-            return resp
-
-        p1_key = _resolve_key(p1_name)
-        p2_key = _resolve_key(p2_name)
+        p1, p2, err = _resolve_players(p1_name, p2_name)
+        if err:
+            return err
 
         try:
             comparison = compare_players(p1, p2)
         except Exception:
             logger.exception("Error comparing players %s vs %s", p1_name, p2_name)
-            resp = make_response(_render_home(error="Erro interno. Tente novamente."), 500)
-            resp.content_type = "text/html"
-            return resp
-
-        report = generate_report(comparison)
-        radar_b64 = generate_radar_base64(p1, p2)
-
-        def _season_age(dob: str, season: str) -> int | None:
-            try:
-                birth_year = int(dob[:4])
-                start_yy = int(season.split("/")[0])
-                start_year = (2000 + start_yy) if start_yy < 100 else start_yy
-                return start_year - birth_year
-            except Exception:
-                return None
-
-        def _age_data(player: Player) -> list[tuple[int, int]]:
-            result = []
-            for s in player.career_seasons:
-                age = s.age if s.age else _season_age(player.date_of_birth, s.season)
-                if age is not None:
-                    result.append((age, s.goals))
-            return result
-
-        age_data_a = _age_data(p1)
-        age_data_b = _age_data(p2)
-        season_data_a = [(s.season, s.goals) for s in p1.career_seasons]
-        season_data_b = [(s.season, s.goals) for s in p2.career_seasons]
-
-        proj1 = calculate_projection(p1)
-        proj2 = calculate_projection(p2)
-
-        players_dict = {k: v for k, v in sorted(_SEARCH_DB.items())}
+            return _html_response(_render_home(error="Erro interno. Tente novamente."), 500)
 
         html = render_template(
             "compare.html",
             comparison=comparison,
-            report=report,
-            radar_b64=radar_b64,
+            report=generate_report(comparison),
+            radar_b64=generate_radar_base64(p1, p2),
             p1=p1,
             p2=p2,
-            p1_key=p1_key,
-            p2_key=p2_key,
-            players=players_dict,
-            age_data_a=age_data_a,
-            age_data_b=age_data_b,
-            season_data_a=season_data_a,
-            season_data_b=season_data_b,
-            projection1={
-                "current": proj1.current_goals,
-                "at_30": proj1.projected_goals_at_30,
-                "at_35": proj1.projected_goals_at_35,
-                "at_40": proj1.projected_goals_at_40,
-            },
-            projection2={
-                "current": proj2.current_goals,
-                "at_30": proj2.projected_goals_at_30,
-                "at_35": proj2.projected_goals_at_35,
-                "at_40": proj2.projected_goals_at_40,
-            },
+            p1_key=_resolve_key(p1_name),
+            p2_key=_resolve_key(p2_name),
+            players={k: v for k, v in sorted(_SEARCH_DB.items())},
+            age_data_a=_age_data(p1),
+            age_data_b=_age_data(p2),
+            season_data_a=[(s.season, s.goals) for s in p1.career_seasons],
+            season_data_b=[(s.season, s.goals) for s in p2.career_seasons],
+            projection1=_projection_dict(calculate_projection(p1)),
+            projection2=_projection_dict(calculate_projection(p2)),
         )
-        resp = make_response(html)
-        resp.content_type = "text/html"
-        return resp
+        return _html_response(html)
 
     @app.route("/api/search/<name>")
     @limiter.limit("30 per minute")
@@ -281,7 +253,10 @@ def create_app() -> Flask:
         return jsonify({"results": results[:10]})
 
     @app.route("/api/player/<name>")
+    @limiter.limit("30 per minute")
     def api_player(name: str):
+        if len(name) > 100:
+            return jsonify({"error": "Nome inválido."}), 400
         try:
             player = search_player(name)
         except ValueError:
