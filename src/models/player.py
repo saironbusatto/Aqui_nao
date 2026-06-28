@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Optional
+
+from src.utils.helpers import calculate_age
 
 
 @dataclass(frozen=True)
@@ -37,25 +39,21 @@ class Player:
     date_of_birth: str
     nationality: str
     position: str
-    height_cm: Optional[float] = None
-    current_team: Optional[str] = None
-    market_value: Optional[str] = None
+    height_cm: float | None = None
+    current_team: str | None = None
+    market_value: str | None = None
     sponsors: tuple[str, ...] = field(default_factory=tuple)
     career_seasons: tuple[SeasonStats, ...] = field(default_factory=tuple)
     injuries: tuple[Injury, ...] = field(default_factory=tuple)
     world_cup_goals: int = 0
     world_cup_appearances: int = 0
     social_media: dict[str, str] = field(default_factory=dict)
-    profile_image_url: Optional[str] = None
+    profile_image_url: str | None = None
 
     @property
     def age(self) -> int:
         """Calculate current age from date of birth."""
-        birth = datetime.strptime(self.date_of_birth, "%Y-%m-%d")
-        today = datetime.now()
-        return today.year - birth.year - (
-            (today.month, today.day) < (birth.month, birth.day)
-        )
+        return calculate_age(self.date_of_birth)
 
     @property
     def total_goals(self) -> int:

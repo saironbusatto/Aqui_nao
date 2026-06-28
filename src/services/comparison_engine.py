@@ -3,7 +3,6 @@ from __future__ import annotations
 from src.models.player import Player
 from src.models.comparison import (
     AgeComparison,
-    GoalProjection,
     InjuryComparison,
     PlayerComparison,
     PlayingTimeComparison,

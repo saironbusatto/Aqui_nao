@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from io import BytesIO
 
 import matplotlib
 matplotlib.use("Agg")

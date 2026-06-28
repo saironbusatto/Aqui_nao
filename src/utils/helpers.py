@@ -2,9 +2,12 @@ from datetime import datetime
 
 
 def calculate_age(date_of_birth: str, reference_date: str | None = None) -> int:
-    """Calculate age from date of birth string (YYYY-MM-DD)."""
-    birth = datetime.strptime(date_of_birth, "%Y-%m-%d")
-    ref = datetime.strptime(reference_date, "%Y-%m-%d") if reference_date else datetime.now()
+    """Calculate age from date of birth string (YYYY-MM-DD). Returns 0 on invalid input."""
+    try:
+        birth = datetime.strptime(date_of_birth, "%Y-%m-%d")
+        ref = datetime.strptime(reference_date, "%Y-%m-%d") if reference_date else datetime.now()
+    except (ValueError, TypeError):
+        return 0
     return ref.year - birth.year - ((ref.month, ref.day) < (birth.month, birth.day))
 
 

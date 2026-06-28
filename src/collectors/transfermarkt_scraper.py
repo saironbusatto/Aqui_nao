@@ -1,7 +1,6 @@
 """Transfermarkt scraper - fetches real player data from transfermarkt.com."""
 
 import re
-import time
 import logging
 from urllib.parse import quote
 
@@ -207,20 +206,12 @@ def scrape_player_profile(url: str) -> dict | None:
 
 
 def scrape_career_stats(url: str) -> tuple[SeasonStats, ...]:
-    """Scrape career statistics table from player profile."""
+    """Scrape career statistics table from the player's performance-data page."""
+    stats_url = url.replace("/profil/", "/leistungsdaten/")
     try:
-        soup = _get_soup(url)
+        soup = _get_soup(stats_url)
     except Exception as e:
-        logger.error("Failed to fetch career stats %s: %s", url, e)
-        return ()
-
-    stats_url = url.rstrip("/") + "/leistungsdatendetails"
-    if "/detaillist" not in url:
-        stats_url = url.replace("/profil/", "/leistungsdaten/")
-
-    try:
-        soup = _get_soup(url)
-    except Exception:
+        logger.error("Failed to fetch career stats %s: %s", stats_url, e)
         return ()
 
     career_table = soup.select_one("table.items")
