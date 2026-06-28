@@ -27,5 +27,4 @@ jobs:
           username: ${{ secrets.ORACLE_USER }}
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
-            cd /home/ubuntu/aqui-nao
-            docker-compose down && docker-compose up -d
+            sudo systemctl restart aquinao
