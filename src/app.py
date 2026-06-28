@@ -25,14 +25,30 @@ _SEARCH_DB: dict[str, Player] = {}
 
 def _init_players() -> None:
     pg_players = load_all_players()
-    source = pg_players if pg_players else DEFAULT_PLAYERS
-    for p in source:
-        _SEARCH_DB[p.name.lower()] = p
-    logger.info(
-        "Banco de jogadores: %d jogadores (%s)",
-        len(_SEARCH_DB),
-        "Postgres" if pg_players else "local",
-    )
+    if pg_players:
+        default_map = {p.name.lower(): p for p in DEFAULT_PLAYERS}
+        for p in pg_players:
+            key = p.name.lower()
+            default = default_map.get(key)
+            if default:
+                _SEARCH_DB[key] = Player(
+                    name=p.name,
+                    date_of_birth=p.date_of_birth,
+                    nationality=p.nationality,
+                    position=p.position,
+                    current_team=p.current_team,
+                    market_value=p.market_value,
+                    sponsors=p.sponsors,
+                    profile_image_url=default.profile_image_url,
+                    social_media=default.social_media,
+                )
+            else:
+                _SEARCH_DB[key] = p
+        logger.info("Banco de jogadores: %d jogadores (Postgres + merge)", len(_SEARCH_DB))
+    else:
+        for p in DEFAULT_PLAYERS:
+            _SEARCH_DB[p.name.lower()] = p
+        logger.info("Banco de jogadores: %d jogadores (local)", len(_SEARCH_DB))
 
 
 def search_player(name: str) -> Player:
