@@ -5,7 +5,7 @@ import logging
 import requests
 
 from src.models.player import Player
-from src.utils.cache import CACHE_TTL_SECONDS, get_cached, set_cached
+from src.utils.cache import get_cached, set_cached
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,6 @@ WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 WIKIDATA_ENTITY = "https://www.wikidata.org/wiki/Special:EntityData/{qid}.json"
 USER_AGENT = "AquiNao/1.0 (comparador de jogadores)"
 SEARCH_CACHE_NS = "wikidata_search"
-CACHE_TTL = CACHE_TTL_SECONDS
 
 
 def _search_entity(name: str) -> str | None:
@@ -40,7 +39,7 @@ def _search_entity(name: str) -> str | None:
         for result in data.get("search", []):
             qid = result.get("id")
             if qid:
-                set_cached(SEARCH_CACHE_NS, name.lower(), qid, expire=CACHE_TTL)
+                set_cached(SEARCH_CACHE_NS, name.lower(), qid)
                 return qid
     except requests.RequestException:
         logger.warning("Erro ao buscar entidade no Wikidata: %s", name)
@@ -61,7 +60,7 @@ def _fetch_entity(qid: str) -> dict | None:
         )
         resp.raise_for_status()
         data = resp.json()
-        set_cached("wikidata_entity", qid, data, expire=CACHE_TTL)
+        set_cached("wikidata_entity", qid, data)
         return data
     except requests.RequestException:
         logger.warning("Erro ao buscar entidade no Wikidata: %s", qid)
