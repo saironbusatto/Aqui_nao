@@ -10,7 +10,6 @@ from flask_caching import Cache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-from src.collectors.wikidata_collector import fetch_player_social
 from src.data.players import ALIASES, DEFAULT_PLAYERS
 from src.data.postgres_loader import load_all_players
 from src.models.player import Player
@@ -225,16 +224,6 @@ def create_app() -> Flask:
                     result.append((age, s.goals))
             return result
 
-        enriched_p1 = fetch_player_social(p1)
-        if enriched_p1 is not p1:
-            p1 = enriched_p1
-            _SEARCH_DB[p1.name.lower()] = p1
-
-        enriched_p2 = fetch_player_social(p2)
-        if enriched_p2 is not p2:
-            p2 = enriched_p2
-            _SEARCH_DB[p2.name.lower()] = p2
-
         age_data_a = _age_data(p1)
         age_data_b = _age_data(p2)
         season_data_a = [(s.season, s.goals) for s in p1.career_seasons]
@@ -297,12 +286,6 @@ def create_app() -> Flask:
             player = search_player(name)
         except ValueError:
             return jsonify({"error": "Player not found."}), 404
-
-        if not player.social_media or not player.profile_image_url:
-            enriched = fetch_player_social(player)
-            if enriched is not player:
-                player = enriched
-                _SEARCH_DB[player.name.lower()] = player
 
         return jsonify({
             "name": player.name,

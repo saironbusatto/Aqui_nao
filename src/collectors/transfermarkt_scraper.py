@@ -122,6 +122,37 @@ def search_players(name: str) -> list[dict]:
     return result
 
 
+def _scrape_social_media(soup: BeautifulSoup) -> dict[str, str]:
+    """Extract Instagram and Twitter/X from profile page."""
+    social: dict[str, str] = {}
+    for a in soup.select("a[href]"):
+        href = a["href"]
+        if "instagram.com/" in href and "transfermarkt" not in href:
+            handle = href.rstrip("/").split("/")[-1]
+            if handle:
+                social["instagram"] = handle
+        elif ("x.com/" in href or "twitter.com/" in href) and "transfermarkt" not in href:
+            handle = href.rstrip("/").split("/")[-1]
+            if handle and handle != "home":
+                social["twitter"] = handle
+    return social
+
+
+def _scrape_profile_image(soup: BeautifulSoup) -> str | None:
+    """Extract profile image URL from Transfermarkt player page."""
+    img = soup.select_one("img[class*=\"profile-image\"]")
+    if img:
+        src = img.get("src", "")
+        if src and "default" not in src:
+            return src
+    img = soup.select_one("img.data-header__profile-image")
+    if img:
+        src = img.get("src", "")
+        if src and "default" not in src:
+            return src
+    return None
+
+
 def scrape_player_profile(url: str) -> dict | None:
     """Scrape player profile page for bio data."""
     try:
@@ -163,6 +194,14 @@ def scrape_player_profile(url: str) -> dict | None:
     market_el = soup.select_one(".tm-market-value")
     if market_el:
         data["market_value"] = market_el.text.strip()
+
+    social = _scrape_social_media(soup)
+    if social:
+        data["social_media"] = social
+
+    image_url = _scrape_profile_image(soup)
+    if image_url:
+        data["profile_image_url"] = image_url
 
     return data if data.get("full_name") else None
 
@@ -322,6 +361,8 @@ def scrape_player(name: str) -> Player | None:
         sponsors=profile.get("sponsors", ()),
         career_seasons=career,
         injuries=injuries,
+        social_media=profile.get("social_media", {}),
+        profile_image_url=profile.get("profile_image_url"),
     )
 
     import dataclasses
