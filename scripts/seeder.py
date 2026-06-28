@@ -506,15 +506,18 @@ def _extract_seasons(session: requests.Session, profile_url: str) -> list[dict]:
     by_key: dict[tuple, dict] = defaultdict(lambda: {"appearances": 0, "goals": 0, "assists": 0, "club_id": None, "season": ""})
 
     for perf in performances:
-        gi = perf.get("gameInformation", {})
-        stats = perf.get("statistics", {})
-        gen = stats.get("generalStatistics", {})
-        goal = stats.get("goalStatistics", {})
+        # API pode retornar chaves com valor null; `or {}` cobre isso
+        # (get(k, {}) só usa default quando a chave falta, não quando é null)
+        gi = perf.get("gameInformation") or {}
+        stats = perf.get("statistics") or {}
+        gen = stats.get("generalStatistics") or {}
+        goal = stats.get("goalStatistics") or {}
 
         if gen.get("participationState") != "played":
             continue
 
-        season_name = gi.get("season", {}).get("nonCyclicalName") or gi.get("season", {}).get("display", "?")
+        season = gi.get("season") or {}
+        season_name = season.get("nonCyclicalName") or season.get("display", "?")
         club_id = str(gen.get("primaryClubId") or "")
         key = (season_name, club_id)
 
