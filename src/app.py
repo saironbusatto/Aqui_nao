@@ -31,11 +31,11 @@ def _init_players() -> None:
         for p in pg_players:
             key = p.name.lower()
             default = default_map.get(key)
-            if default and (default.profile_image_url or default.social_media):
+            if default:
                 _SEARCH_DB[key] = replace(
                     p,
-                    profile_image_url=default.profile_image_url,
-                    social_media=default.social_media,
+                    profile_image_url=p.profile_image_url or default.profile_image_url,
+                    social_media=p.social_media or default.social_media,
                 )
             else:
                 _SEARCH_DB[key] = p
@@ -108,7 +108,7 @@ def create_app() -> Flask:
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
-            "img-src 'self' data: https://upload.wikimedia.org; "
+            "img-src 'self' data: https://upload.wikimedia.org https://img.a.transfermarkt.technology; "
             "connect-src 'self'; "
             "frame-src 'none'; "
             "object-src 'none';"

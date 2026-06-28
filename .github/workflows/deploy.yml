@@ -27,4 +27,5 @@ jobs:
           username: ${{ secrets.ORACLE_USER }}
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
+            mkdir -p /home/ubuntu/aqui-nao/src/static/images/players
             sudo systemctl restart aquinao

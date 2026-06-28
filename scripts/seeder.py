@@ -32,6 +32,39 @@ import requests
 from bs4 import BeautifulSoup
 
 # ---------------------------------------------------------------------------
+# Image download
+# ---------------------------------------------------------------------------
+
+_IMAGE_DIR = "src/static/images/players"
+
+
+def _download_profile_image(image_url: str, tm_url: str) -> str | None:
+    if not image_url or "default" in image_url:
+        return None
+    m = re.search(r"/spieler/(\d+)", tm_url)
+    if not m:
+        return None
+    tm_id = m.group(1)
+    path = image_url.split("?")[0].rstrip("/")
+    _, ext = os.path.splitext(path)
+    ext = ext or ".jpg"
+    filename = f"{tm_id}{ext}"
+    os.makedirs(_IMAGE_DIR, exist_ok=True)
+    local = os.path.join(_IMAGE_DIR, filename)
+    if os.path.exists(local):
+        return f"/static/images/players/{filename}"
+    try:
+        r = requests.get(image_url, timeout=15)
+        r.raise_for_status()
+        with open(local, "wb") as f:
+            f.write(r.content)
+        logger.info("Imagem salva: %s (%d bytes)", filename, len(r.content))
+        return f"/static/images/players/{filename}"
+    except Exception as e:
+        logger.warning("Falha ao baixar imagem %s: %s", image_url, e)
+        return None
+
+# ---------------------------------------------------------------------------
 # Configuração
 # ---------------------------------------------------------------------------
 
@@ -737,6 +770,11 @@ def seed_all() -> None:
             logger.warning("[phase2] %s %s — sem dados retornados", progress, pname)
             errors += 1
             continue
+
+        if data.get("profile_image_url"):
+            local_url = _download_profile_image(data["profile_image_url"], tm_url)
+            if local_url:
+                data["profile_image_url"] = local_url
 
         new_hash = compute_hash(data)
 
