@@ -830,7 +830,9 @@ def seed_all(source_filter: str | None = None,
                 age = datetime.now().year - int(m.group(1))
         progress = f"[{idx}/{total_due}]"
 
-        if is_injured and not is_retired:
+        # Pula lesionado só no refresh (já tem dados); no seed inicial
+        # (old_hash NULL) raspa mesmo lesionado, senão nunca pega o histórico.
+        if is_injured and not is_retired and old_hash:
             logger.info("[phase2] %s %s — LESIONADO, reagendando em 3 dias", progress, pname)
             bump_next_refresh(conn, pid, 3)
             skipped_injured += 1
