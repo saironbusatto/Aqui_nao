@@ -324,7 +324,7 @@
 
     // Charts
     const grid = 'rgba(255,255,255,.05)';
-    const tick = {color:'rgba(255,255,255,.38)', font:{family:'Space Grotesk', size:11}};
+    const ticks = {color:'rgba(255,255,255,.38)', font:{family:'Space Grotesk', size:11}};
     const legend = {labels:{color:'rgba(255,255,255,.7)',font:{family:'Space Grotesk',size:12},boxWidth:12}};
 
     try {
@@ -344,7 +344,7 @@
           animation:{duration:1200, easing:'easeOutQuart'},
         }
       });
-    } catch(e) { console.warn('barChart:', e); }
+    } catch(e) { console.error('barChart:', e); }
 
     try {
       const allSeasons = [...new Set([...seasonDataA.map(d=>d[0]),...seasonDataB.map(d=>d[0])])].sort((a,b)=>a.localeCompare(b));
@@ -362,11 +362,11 @@
         options: {
           responsive:true, maintainAspectRatio:false,
           plugins:{legend, tooltip:{mode:'index',intersect:false}},
-          scales:{x:{grid:{color:grid},ticks:{...tick,maxRotation:0,maxTicksLimit:10}},y:{grid:{color:grid},ticks}},
+          scales:{x:{grid:{color:grid},ticks:{...ticks,maxRotation:0,maxTicksLimit:10}},y:{grid:{color:grid},ticks}},
           animation:{duration:1200, easing:'easeOutQuart'},
         }
       });
-    } catch(e) { console.warn('timelineChart:', e); }
+    } catch(e) { console.error('timelineChart:', e); }
 
     try {
       const allAges = [...new Set([...ageDataA.map(d=>d[0]),...ageDataB.map(d=>d[0])])].sort((a,b)=>a-b);
@@ -384,11 +384,11 @@
         options: {
           responsive:true, maintainAspectRatio:false,
           plugins:{legend},
-          scales:{x:{grid:{color:grid},ticks:{...tick,maxRotation:45}},y:{grid:{color:grid},ticks}},
+          scales:{x:{grid:{color:grid},ticks:{...ticks,maxRotation:45}},y:{grid:{color:grid},ticks}},
           animation:{duration:1000, easing:'easeOutQuart'},
         }
       });
-    } catch(e) { console.warn('ageChart:', e); }
+    } catch(e) { console.error('ageChart:', e); }
 
     try {
       new Chart(document.getElementById('projectionChart'), {
@@ -407,7 +407,7 @@
           animation:{duration:1000, easing:'easeOutQuart'},
         }
       });
-    } catch(e) { console.warn('projectionChart:', e); }
+    } catch(e) { console.error('projectionChart:', e); }
 
     function switchPlayer(num, key) {
       window.location = '/compare?p1=' + (num === 1 ? key : document.getElementById('switchA').value) +
