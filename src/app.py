@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import secrets
+from dataclasses import replace
 
 from flask import Flask, make_response, render_template, request, jsonify, session, redirect, url_for
 from flask_caching import Cache
@@ -30,15 +31,9 @@ def _init_players() -> None:
         for p in pg_players:
             key = p.name.lower()
             default = default_map.get(key)
-            if default:
-                _SEARCH_DB[key] = Player(
-                    name=p.name,
-                    date_of_birth=p.date_of_birth,
-                    nationality=p.nationality,
-                    position=p.position,
-                    current_team=p.current_team,
-                    market_value=p.market_value,
-                    sponsors=p.sponsors,
+            if default and (default.profile_image_url or default.social_media):
+                _SEARCH_DB[key] = replace(
+                    p,
                     profile_image_url=default.profile_image_url,
                     social_media=default.social_media,
                 )
