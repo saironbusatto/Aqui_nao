@@ -10,10 +10,10 @@ Fontes configuradas:
 Para adicionar mais fontes no futuro (ex: Champions League, Bundesliga),
 basta inserir um novo item na lista SOURCES.
 
-Logs:
-  - data/seeder.log          → log histórico de todas as execuções
-  - data/runs/YYYYMMDD_HHmm.log → log isolado de cada execução (para debug)
-  - data/seeder_state.json   → estado persistido (última busca por fonte)
+Logs (fora do projeto para não serem limpos pelo rsync):
+  - /var/log/aquinao/seeder.log          → log histórico de todas as execuções
+  - /var/log/aquinao/runs/YYYYMMDD_HHmm.log → log isolado de cada execução
+  - /var/log/aquinao/seeder_state.json   → estado persistido (última busca por fonte)
 """
 from __future__ import annotations
 
@@ -41,9 +41,11 @@ DATABASE_URL = os.environ.get(
 )
 
 DATA_DIR    = Path("/home/ubuntu/aqui-nao/data")
-RUNS_DIR    = DATA_DIR / "runs"
-STATE_FILE  = DATA_DIR / "seeder_state.json"
+LOG_DIR     = Path("/var/log/aquinao")
+RUNS_DIR    = LOG_DIR / "runs"
+STATE_FILE  = LOG_DIR / "seeder_state.json"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
 RUN_ID      = datetime.now().strftime("%Y%m%d_%H%M")
@@ -52,7 +54,7 @@ RUN_LOG     = RUNS_DIR / f"{RUN_ID}.log"
 # Configura dois handlers: log histórico + log isolado deste run
 _fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
 
-_file_handler = logging.FileHandler(DATA_DIR / "seeder.log")
+_file_handler = logging.FileHandler(LOG_DIR / "seeder.log")
 _file_handler.setFormatter(_fmt)
 
 _run_handler = logging.FileHandler(RUN_LOG)
