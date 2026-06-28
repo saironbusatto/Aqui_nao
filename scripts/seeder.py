@@ -3,12 +3,15 @@
 Smart seeder: busca listas de jogadores no Transfermarkt e atualiza o Postgres
 com base em TTL inteligente por faixa etária e valor de mercado.
 
-Fontes configuradas:
-  - Top 500 mundial por valor de mercado
-  - Top 100 Brasil por valor de mercado
+CLI:
+  python3 scripts/seeder.py                    → todas as fontes + fase 2
+  python3 scripts/seeder.py --source=premier_top50 --phase1  → só lista de uma fonte
+  python3 scripts/seeder.py --phase2            → só detalhes pendentes
 
-Para adicionar mais fontes no futuro (ex: Champions League, Bundesliga),
-basta inserir um novo item na lista SOURCES.
+Fontes configuradas (12):
+  global_top500, brazil_top100, champions_top50, premier_top50,
+  bundesliga_top50, laliga_top50, seriea_top50, ligue1_top50,
+  brasileirao_top50, saudileague_top50, portugal_top50, eredivisie_top50
 
 Logs (fora do projeto para não serem limpos pelo rsync):
   - /var/log/aquinao/seeder.log          → log histórico de todas as execuções
@@ -126,30 +129,86 @@ SOURCES: list[dict] = [
         "name": "global_top500",
         "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
         "params": {},
-        "pages": 20,          # 25 × 20 = 500
+        "pages": 20,
         "rank_offset": 0,
     },
     {
         "name": "brazil_top100",
         "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
-        "params": {"land_id": 26},   # 26 = Brasil
-        "pages": 4,                  # 25 × 4 = 100
+        "params": {"land_id": 26},
+        "pages": 4,
         "rank_offset": 10_000,
     },
-    # {
-    #     "name": "champions_top100",
-    #     "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
-    #     "params": {"wettbewerb_id": "CL"},
-    #     "pages": 4,
-    #     "rank_offset": 20_000,
-    # },
-    # {
-    #     "name": "bundesliga_top100",
-    #     "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
-    #     "params": {"wettbewerb_id": "L1"},
-    #     "pages": 4,
-    #     "rank_offset": 30_000,
-    # },
+    {
+        "name": "champions_top50",
+        "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
+        "params": {"wettbewerb_id": "CL"},
+        "pages": 2,
+        "rank_offset": 20_000,
+    },
+    {
+        "name": "premier_top50",
+        "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
+        "params": {"wettbewerb_id": "GB1"},
+        "pages": 2,
+        "rank_offset": 30_000,
+    },
+    {
+        "name": "bundesliga_top50",
+        "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
+        "params": {"wettbewerb_id": "L1"},
+        "pages": 2,
+        "rank_offset": 40_000,
+    },
+    {
+        "name": "laliga_top50",
+        "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
+        "params": {"wettbewerb_id": "ES1"},
+        "pages": 2,
+        "rank_offset": 50_000,
+    },
+    {
+        "name": "seriea_top50",
+        "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
+        "params": {"wettbewerb_id": "IT1"},
+        "pages": 2,
+        "rank_offset": 60_000,
+    },
+    {
+        "name": "ligue1_top50",
+        "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
+        "params": {"wettbewerb_id": "FR1"},
+        "pages": 2,
+        "rank_offset": 70_000,
+    },
+    {
+        "name": "brasileirao_top50",
+        "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
+        "params": {"wettbewerb_id": "BRA1"},
+        "pages": 2,
+        "rank_offset": 80_000,
+    },
+    {
+        "name": "saudileague_top50",
+        "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
+        "params": {"wettbewerb_id": "SA1"},
+        "pages": 2,
+        "rank_offset": 90_000,
+    },
+    {
+        "name": "portugal_top50",
+        "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
+        "params": {"wettbewerb_id": "PO1"},
+        "pages": 2,
+        "rank_offset": 100_000,
+    },
+    {
+        "name": "eredivisie_top50",
+        "url": f"{TM_BASE}/spieler-statistik/wertvollstespieler/marktwertetop",
+        "params": {"wettbewerb_id": "NL1"},
+        "pages": 2,
+        "rank_offset": 110_000,
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -662,10 +721,18 @@ def bump_next_refresh(conn: psycopg2.extensions.connection, player_id: int, days
 # Orquestrador principal
 # ---------------------------------------------------------------------------
 
-def seed_all() -> None:
+def seed_all(source_filter: str | None = None,
+             only_phase1: bool = False,
+             only_phase2: bool = False) -> None:
     start = time.time()
     logger.info("=" * 60)
     logger.info("RUN %s — Seeder iniciado", RUN_ID)
+    if source_filter:
+        logger.info("Filtro: --source=%s", source_filter)
+    if only_phase1:
+        logger.info("Modo: --phase1 (apenas listas)")
+    if only_phase2:
+        logger.info("Modo: --phase2 (apenas detalhes pendentes)")
     logger.info("Log desta execução: %s", RUN_LOG)
     logger.info("=" * 60)
 
@@ -677,12 +744,16 @@ def seed_all() -> None:
     # Phase 1: buscar listas (apenas se passou LIST_REFRESH_DAYS por fonte)
     # -----------------------------------------------------------------------
     phase1_total = 0
-    for source in SOURCES:
-        name = source["name"]
-        if not _source_needs_list_refresh(state, name):
-            logger.info("[phase1] %s — lista atualizada há menos de %d dias, pulando",
-                        name, LIST_REFRESH_DAYS)
-            continue
+    if not only_phase2:
+        for source in SOURCES:
+            name = source["name"]
+            if source_filter and source_filter != name:
+                logger.debug("[phase1] %s — pulando (filtrado por --source)", name)
+                continue
+            if not _source_needs_list_refresh(state, name):
+                logger.info("[phase1] %s — lista atualizada há menos de %d dias, pulando",
+                            name, LIST_REFRESH_DAYS)
+                continue
 
         logger.info("[phase1] %s — buscando %d páginas", name, source["pages"])
         source_count = 0
@@ -717,6 +788,16 @@ def seed_all() -> None:
     # -----------------------------------------------------------------------
     # Phase 2: raspar dados completos dos pendentes
     # -----------------------------------------------------------------------
+    if only_phase1:
+        elapsed = int(time.time() - start)
+        conn.close()
+        logger.info("=" * 60)
+        logger.info("RUN %s CONCLUÍDO (--phase1) em %dm%ds | listas=%d",
+                    RUN_ID, elapsed // 60, elapsed % 60, phase1_total)
+        logger.info("Log completo: %s", RUN_LOG)
+        logger.info("=" * 60)
+        return
+
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -819,8 +900,15 @@ def seed_all() -> None:
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Smart seeder do Transfermarkt")
+    parser.add_argument("--source", help="Processar apenas esta fonte (ex: premier_top50)")
+    parser.add_argument("--phase1", action="store_true", help="Apenas buscar listas")
+    parser.add_argument("--phase2", action="store_true", help="Apenas raspar detalhes pendentes")
+    args = parser.parse_args()
+
     try:
-        seed_all()
+        seed_all(source_filter=args.source, only_phase1=args.phase1, only_phase2=args.phase2)
     except Exception:
         logger.exception("CRASH FATAL no seeder — traceback completo acima")
         raise
