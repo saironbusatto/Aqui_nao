@@ -13,3 +13,5 @@ venv/
 .venv/
 *.log
 credenciais.md
+.claude/
+data/flask_cache/
