@@ -347,6 +347,26 @@ def _extract_profile(soup: BeautifulSoup) -> dict:
         soup.select_one(".verletzungsbox, .injury-box, [class='verletzung']")
     )
 
+    social: dict[str, str] = {}
+    for a in soup.select("a[href]"):
+        href = a["href"]
+        if "instagram.com/" in href and "transfermarkt" not in href:
+            handle = href.rstrip("/").split("/")[-1]
+            if handle:
+                social["instagram"] = handle
+        elif ("x.com/" in href or "twitter.com/" in href) and "transfermarkt" not in href:
+            handle = href.rstrip("/").split("/")[-1]
+            if handle and handle != "home":
+                social["twitter"] = handle
+    if social:
+        data["social_media"] = social
+
+    img = soup.select_one("img.data-header__profile-image")
+    if img:
+        src = img.get("src", "")
+        if src and "default" not in src:
+            data["profile_image_url"] = src
+
     return data
 
 
@@ -537,22 +557,26 @@ def update_full_player(
         cur.execute(
             """
             UPDATE players SET
-                full_name       = COALESCE(%s, full_name),
-                date_of_birth   = COALESCE(%s, date_of_birth),
-                nationality     = COALESCE(%s, nationality),
-                position        = COALESCE(%s, position),
-                current_team    = COALESCE(%s, current_team),
-                market_value    = COALESCE(%s, market_value),
-                is_retired      = %s,
-                is_injured      = %s,
-                last_scraped_at = NOW(),
-                next_refresh_at = %s,
-                data_hash       = %s
+                full_name         = COALESCE(%s, full_name),
+                date_of_birth     = COALESCE(%s, date_of_birth),
+                nationality       = COALESCE(%s, nationality),
+                position          = COALESCE(%s, position),
+                current_team      = COALESCE(%s, current_team),
+                market_value      = COALESCE(%s, market_value),
+                social_media      = %s,
+                profile_image_url = COALESCE(%s, profile_image_url),
+                is_retired        = %s,
+                is_injured        = %s,
+                last_scraped_at   = NOW(),
+                next_refresh_at   = %s,
+                data_hash         = %s
             WHERE id = %s
             """,
             (
                 data.get("full_name"), _normalize_date(data.get("date_of_birth") or ""), data.get("nationality"),
                 data.get("position"), data.get("current_team"), data.get("market_value"),
+                json.dumps(data.get("social_media")) if data.get("social_media") else None,
+                data.get("profile_image_url"),
                 data.get("is_retired", False), data.get("is_injured", False),
                 next_refresh, new_hash, player_id,
             ),

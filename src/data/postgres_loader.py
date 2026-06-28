@@ -17,7 +17,11 @@ def _get_conn():
 
 
 def _row_to_player(row: tuple, seasons: list[tuple], injuries: list[tuple]) -> Player:
-    name, full_name, dob, nationality, position, team, market_value, wc_goals, wc_apps = row
+    name, full_name, dob, nationality, position, team, market_value, wc_goals, wc_apps, social_raw, img_raw = row
+    social_media: dict[str, str] = {}
+    if social_raw:
+        import json
+        social_media = {k: str(v) for k, v in json.loads(social_raw).items()}
     return Player(
         name=name,
         full_name=full_name or name,
@@ -28,6 +32,8 @@ def _row_to_player(row: tuple, seasons: list[tuple], injuries: list[tuple]) -> P
         market_value=market_value,
         world_cup_goals=wc_goals or 0,
         world_cup_appearances=wc_apps or 0,
+        social_media=social_media,
+        profile_image_url=img_raw,
         career_seasons=tuple(
             SeasonStats(
                 season=s[0], team=s[1], age=s[2],
@@ -56,7 +62,8 @@ def load_all_players() -> list[Player] | None:
         with conn.cursor() as cur:
             cur.execute(
                 "SELECT id, name, full_name, date_of_birth, nationality, position, "
-                "current_team, market_value, world_cup_goals, world_cup_appearances "
+                "current_team, market_value, world_cup_goals, world_cup_appearances, "
+                "social_media, profile_image_url "
                 "FROM players ORDER BY id"
             )
             player_rows = cur.fetchall()
