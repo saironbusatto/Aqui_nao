@@ -122,18 +122,25 @@ def search_players(name: str) -> list[dict]:
 
 
 def _scrape_social_media(soup: BeautifulSoup) -> dict[str, str]:
-    """Extract Instagram and Twitter/X from profile page."""
+    """Extract Instagram and Twitter/X from the player's social container.
+
+    Scoped to `.social-media-toolbar__icons` — scanning the whole page
+    picked up Transfermarkt's own footer links (e.g. twitter.com/TMuk_news).
+    """
     social: dict[str, str] = {}
-    for a in soup.select("a[href]"):
+    for a in soup.select(".social-media-toolbar__icons a[href]"):
         href = a["href"]
-        if "instagram.com/" in href and "transfermarkt" not in href:
-            handle = href.rstrip("/").split("/")[-1]
-            if handle:
-                social["instagram"] = handle
-        elif ("x.com/" in href or "twitter.com/" in href) and "transfermarkt" not in href:
-            handle = href.rstrip("/").split("/")[-1]
-            if handle and handle != "home":
-                social["twitter"] = handle
+        if "transfermarkt" in href:
+            continue
+        handle = href.rstrip("/").split("/")[-1]
+        if not handle or handle == "home":
+            continue
+        if "instagram.com/" in href:
+            social["instagram"] = handle
+        elif "x.com/" in href or "twitter.com/" in href:
+            social["twitter"] = handle
+        elif "facebook.com/" in href:
+            social["facebook"] = handle
     return social
 
 

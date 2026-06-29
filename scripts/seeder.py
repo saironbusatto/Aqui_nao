@@ -439,17 +439,22 @@ def _extract_profile(soup: BeautifulSoup) -> dict:
         soup.select_one(".verletzungsbox, .injury-box, [class='verletzung']")
     )
 
+    # Só o container social DO JOGADOR. Varrer a página toda pegava os
+    # links do rodapé do Transfermarkt (ex: twitter.com/TMuk_news).
     social: dict[str, str] = {}
-    for a in soup.select("a[href]"):
+    for a in soup.select(".social-media-toolbar__icons a[href]"):
         href = a["href"]
-        if "instagram.com/" in href and "transfermarkt" not in href:
-            handle = href.rstrip("/").split("/")[-1]
-            if handle:
-                social["instagram"] = handle
-        elif ("x.com/" in href or "twitter.com/" in href) and "transfermarkt" not in href:
-            handle = href.rstrip("/").split("/")[-1]
-            if handle and handle != "home":
-                social["twitter"] = handle
+        if "transfermarkt" in href:
+            continue
+        handle = href.rstrip("/").split("/")[-1]
+        if not handle or handle == "home":
+            continue
+        if "instagram.com/" in href:
+            social["instagram"] = handle
+        elif "x.com/" in href or "twitter.com/" in href:
+            social["twitter"] = handle
+        elif "facebook.com/" in href:
+            social["facebook"] = handle
     if social:
         data["social_media"] = social
 
@@ -726,7 +731,8 @@ def bump_next_refresh(conn: psycopg2.extensions.connection, player_id: int, days
 
 def seed_all(source_filter: str | None = None,
              only_phase1: bool = False,
-             only_phase2: bool = False) -> None:
+             only_phase2: bool = False,
+             limit: int | None = None) -> None:
     start = time.time()
     logger.info("=" * 60)
     logger.info("RUN %s — Seeder iniciado", RUN_ID)
@@ -815,6 +821,7 @@ def seed_all(source_filter: str | None = None,
               AND transfermarkt_url IS NOT NULL
             ORDER BY COALESCE(market_value_rank, 9999), next_refresh_at
             """
+            + ("LIMIT %s" % int(limit) if limit else "")
         )
         due = cur.fetchall()
 
@@ -910,10 +917,12 @@ if __name__ == "__main__":
     parser.add_argument("--source", help="Processar apenas esta fonte (ex: premier_top50)")
     parser.add_argument("--phase1", action="store_true", help="Apenas buscar listas")
     parser.add_argument("--phase2", action="store_true", help="Apenas raspar detalhes pendentes")
+    parser.add_argument("--limit", type=int, default=None, help="Máx de jogadores por execução (lote)")
     args = parser.parse_args()
 
     try:
-        seed_all(source_filter=args.source, only_phase1=args.phase1, only_phase2=args.phase2)
+        seed_all(source_filter=args.source, only_phase1=args.phase1,
+                 only_phase2=args.phase2, limit=args.limit)
     except Exception:
         logger.exception("CRASH FATAL no seeder — traceback completo acima")
         raise
