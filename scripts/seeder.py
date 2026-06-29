@@ -252,8 +252,20 @@ def _is_transfer_window() -> bool:
     return datetime.now().month in (1, 7)
 
 
-def compute_refresh_days(age: int, market_value_rank: int, is_retired: bool) -> int:
-    """Calcula intervalo de atualização em dias baseado em idade e relevância."""
+REFRESH_BACKOFF_CAP_DAYS = 90       # teto do backoff p/ jogador estável
+REFRESH_STREAK_CAP = 5              # 2^5 = 32x no máximo
+
+
+def compute_refresh_days(
+    age: int, market_value_rank: int, is_retired: bool, stable_streak: int = 0
+) -> int:
+    """Intervalo de atualização (dias) por idade, relevância e estabilidade.
+
+    `stable_streak` = nº de raspagens seguidas SEM mudança. Quanto mais
+    estável o jogador, mais o intervalo afrouxa (backoff ×2 por streak,
+    teto REFRESH_BACKOFF_CAP_DAYS). Qualquer mudança zera o streak e ele
+    volta ao intervalo-base. Top 50 por valor nunca afrouxa além de semanal.
+    """
     if is_retired or age >= 43:
         return 36_500               # aposentado: seed único
 
@@ -268,10 +280,14 @@ def compute_refresh_days(age: int, market_value_rank: int, is_retired: bool) -> 
     else:
         days = 3
 
-    if market_value_rank <= 50:     # top 50 por valor: no máximo semanal
-        days = min(days, 7)
+    base = max(int(days * multiplier), 1)
+    backed_off = base * (2 ** min(stable_streak, REFRESH_STREAK_CAP))
+    days_out = min(backed_off, REFRESH_BACKOFF_CAP_DAYS)
 
-    return max(int(days * multiplier), 1)
+    if market_value_rank <= 50:     # top 50 por valor: sempre no máximo semanal
+        days_out = min(days_out, 7)
+
+    return max(days_out, 1)
 
 
 # ---------------------------------------------------------------------------
@@ -652,6 +668,7 @@ def update_full_player(
     data: dict,
     new_hash: str,
     next_refresh: datetime,
+    stable_streak: int = 0,
 ) -> None:
     with conn.cursor() as cur:
         cur.execute(
@@ -669,6 +686,7 @@ def update_full_player(
                 is_injured        = %s,
                 last_scraped_at   = NOW(),
                 next_refresh_at   = %s,
+                stable_streak     = %s,
                 data_hash         = %s
             WHERE id = %s
             """,
@@ -678,7 +696,7 @@ def update_full_player(
                 json.dumps(data.get("social_media")) if data.get("social_media") else None,
                 data.get("profile_image_url"),
                 data.get("is_retired", False), data.get("is_injured", False),
-                next_refresh, new_hash, player_id,
+                next_refresh, stable_streak, new_hash, player_id,
             ),
         )
 
@@ -715,13 +733,23 @@ def update_full_player(
     conn.commit()
 
 
-def bump_next_refresh(conn: psycopg2.extensions.connection, player_id: int, days: int) -> None:
+def bump_next_refresh(
+    conn: psycopg2.extensions.connection, player_id: int, days: int,
+    stable_streak: int | None = None,
+) -> None:
     with conn.cursor() as cur:
-        cur.execute(
-            "UPDATE players SET last_scraped_at = NOW(), "
-            "next_refresh_at = NOW() + (%s || ' days')::INTERVAL WHERE id = %s",
-            (str(days), player_id),
-        )
+        if stable_streak is None:
+            cur.execute(
+                "UPDATE players SET last_scraped_at = NOW(), "
+                "next_refresh_at = NOW() + (%s || ' days')::INTERVAL WHERE id = %s",
+                (str(days), player_id),
+            )
+        else:
+            cur.execute(
+                "UPDATE players SET last_scraped_at = NOW(), stable_streak = %s, "
+                "next_refresh_at = NOW() + (%s || ' days')::INTERVAL WHERE id = %s",
+                (stable_streak, str(days), player_id),
+            )
     conn.commit()
 
 
@@ -815,7 +843,8 @@ def seed_all(source_filter: str | None = None,
                    data_hash,
                    COALESCE(is_retired, FALSE),
                    COALESCE(is_injured, FALSE),
-                   date_of_birth
+                   date_of_birth,
+                   COALESCE(stable_streak, 0)
             FROM players
             WHERE next_refresh_at <= NOW()
               AND transfermarkt_url IS NOT NULL
@@ -831,7 +860,7 @@ def seed_all(source_filter: str | None = None,
     refreshed = skipped_injured = skipped_unchanged = errors = 0
 
     for idx, row in enumerate(due, 1):
-        pid, pname, tm_url, mv_rank, old_hash, is_retired, is_injured, dob = row
+        pid, pname, tm_url, mv_rank, old_hash, is_retired, is_injured, dob, old_streak = row
         # calcula idade em Python para evitar cast SQL problemático
         age = 25
         if dob:
@@ -877,22 +906,26 @@ def seed_all(source_filter: str | None = None,
             if m:
                 effective_age = datetime.now().year - int(m.group(1))
 
+        # backoff adaptativo: estável (hash igual) → streak++; mudou → zera
+        unchanged = old_hash is not None and new_hash == old_hash
+        new_streak = (old_streak + 1) if unchanged else 0
+
         refresh_days = compute_refresh_days(
-            effective_age, mv_rank, data.get("is_retired", False)
+            effective_age, mv_rank, data.get("is_retired", False), new_streak
         )
         next_refresh = datetime.now(timezone.utc) + timedelta(days=refresh_days)
 
-        if new_hash == old_hash:
-            logger.info("[phase2] %s %s — SEM MUDANÇAS → próxima em %d dias",
-                        progress, pname, refresh_days)
-            bump_next_refresh(conn, pid, refresh_days)
+        if unchanged:
+            logger.info("[phase2] %s %s — SEM MUDANÇAS (streak=%d) → próxima em %d dias",
+                        progress, pname, new_streak, refresh_days)
+            bump_next_refresh(conn, pid, refresh_days, stable_streak=new_streak)
             skipped_unchanged += 1
         else:
             logger.info("[phase2] %s %s — ATUALIZADO (%d temp, %d lesões) → próxima em %d dias",
                         progress, pname,
                         len(data.get("seasons", [])), len(data.get("injuries", [])),
                         refresh_days)
-            update_full_player(conn, pid, data, new_hash, next_refresh)
+            update_full_player(conn, pid, data, new_hash, next_refresh, stable_streak=0)
             refreshed += 1
 
         time.sleep(SCRAPE_DELAY)
