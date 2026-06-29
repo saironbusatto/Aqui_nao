@@ -121,6 +121,7 @@ def enqueue_tier(conn, tier: dict, max_n: int | None = None) -> int:
     já tem o TM ID no banco. Trata colisão de nome (UNIQUE) com sufixo."""
     rows = discover(tier["pattern"], max_n=max_n)
     logger.info("[%s] %d candidatos do Wikidata", tier["key"], len(rows))
+    conn.rollback()  # fecha qualquer transação aberta antes de setar autocommit
     conn.autocommit = True
     added = 0
     for tm_id, label in rows:
