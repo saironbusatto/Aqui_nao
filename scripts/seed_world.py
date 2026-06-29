@@ -166,7 +166,7 @@ def _next_pending_tier(state: dict) -> dict | None:
     return None
 
 
-def tick(limit: int) -> None:
+def tick(limit: int, concurrency: int = 1) -> None:
     """Driver do cron: se a fila zerou, enfileira o próximo tier; depois
     raspa um lote limitado. Tudo idempotente e resumível."""
     conn = _get_conn()
@@ -187,7 +187,7 @@ def tick(limit: int) -> None:
 
     conn.close()
     # Drena um lote. seed_all gerencia sua própria conexão.
-    seed_all(only_phase2=True, limit=limit)
+    seed_all(only_phase2=True, limit=limit, concurrency=concurrency)
 
 
 def status() -> None:
@@ -218,6 +218,7 @@ if __name__ == "__main__":
 
     p_tick = sub.add_parser("tick", help="Driver do cron")
     p_tick.add_argument("--limit", type=int, default=150)
+    p_tick.add_argument("--concurrency", type=int, default=1)
 
     p_enq = sub.add_parser("enqueue", help="Enfileirar um tier manualmente")
     p_enq.add_argument("--tier", required=True, choices=[t["key"] for t in TIERS])
@@ -228,7 +229,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.cmd == "tick":
-        tick(args.limit)
+        tick(args.limit, args.concurrency)
     elif args.cmd == "enqueue":
         conn = _get_conn()
         tier = next(t for t in TIERS if t["key"] == args.tier)

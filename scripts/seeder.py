@@ -24,8 +24,10 @@ import hashlib
 import json
 import logging
 import os
+import random
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -33,6 +35,8 @@ import psycopg2
 import psycopg2.extras
 import requests
 from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 # ---------------------------------------------------------------------------
 # Image download
@@ -330,9 +334,22 @@ def compute_hash(data: dict) -> str:
 # HTTP helpers
 # ---------------------------------------------------------------------------
 
-def _make_session() -> requests.Session:
+def _make_session(pool: int = 16) -> requests.Session:
     s = requests.Session()
     s.headers.update(HEADERS)
+    # Retry com backoff exponencial em 429/5xx + respeita Retry-After do TM.
+    # É a proteção que evita "estourar na outra ponta": ao tomar 429, recua
+    # em vez de marteladar. pool_maxsize cobre os workers concorrentes.
+    retry = Retry(
+        total=4,
+        backoff_factor=2,                        # 2s, 4s, 8s, 16s
+        status_forcelist=[429, 500, 502, 503, 504],
+        respect_retry_after_header=True,
+        allowed_methods=frozenset(["GET"]),
+    )
+    adapter = HTTPAdapter(max_retries=retry, pool_maxsize=pool, pool_connections=pool)
+    s.mount("https://", adapter)
+    s.mount("http://", adapter)
     return s
 
 
@@ -491,12 +508,12 @@ _TMAPI_HEADERS = {
 }
 
 
-def _fetch_club_names(club_ids: set[str]) -> dict[str, str]:
+def _fetch_club_names(session: requests.Session, club_ids: set[str]) -> dict[str, str]:
     if not club_ids:
         return {}
     ids_param = "&".join(f"ids[]={i}" for i in club_ids)
     try:
-        r = requests.get(f"{_TMAPI_BASE}/clubs?{ids_param}", headers=_TMAPI_HEADERS, timeout=15)
+        r = session.get(f"{_TMAPI_BASE}/clubs?{ids_param}", headers=_TMAPI_HEADERS, timeout=15)
         r.raise_for_status()
         clubs = r.json().get("data", [])
         return {str(c["id"]): c["name"] for c in clubs if c.get("id") and c.get("name")}
@@ -515,7 +532,7 @@ def _extract_seasons(session: requests.Session, profile_url: str) -> list[dict]:
     api_url = f"{_TMAPI_BASE}/player/{player_id}/performance-game"
 
     try:
-        r = requests.get(api_url, headers=_TMAPI_HEADERS, timeout=20)
+        r = session.get(api_url, headers=_TMAPI_HEADERS, timeout=20)
         r.raise_for_status()
         performances = r.json().get("data", {}).get("performance", [])
     except Exception as exc:
@@ -555,7 +572,7 @@ def _extract_seasons(session: requests.Session, profile_url: str) -> list[dict]:
         return []
 
     all_club_ids = {v["club_id"] for v in by_key.values() if v["club_id"]}
-    club_names = _fetch_club_names(all_club_ids)
+    club_names = _fetch_club_names(session, all_club_ids)
 
     seasons = [
         {
@@ -754,13 +771,85 @@ def bump_next_refresh(
 
 
 # ---------------------------------------------------------------------------
+# Processamento de 1 jogador: scrape (rede, paralelizável) + persist (DB serial)
+# ---------------------------------------------------------------------------
+
+def _scrape_player_row(row: tuple, session: requests.Session) -> dict:
+    """Só rede + cálculo, SEM tocar no banco. Retornável de uma thread."""
+    pid, pname, tm_url, mv_rank, old_hash, is_retired, is_injured, dob, old_streak = row
+    age = 25
+    if dob:
+        m = re.search(r"(\d{4})", str(dob))
+        if m:
+            age = datetime.now().year - int(m.group(1))
+
+    if is_injured and not is_retired and old_hash:
+        return {"action": "skip_injured", "pid": pid, "pname": pname}
+
+    try:
+        data = scrape_full_player(session, tm_url)
+    except Exception as exc:
+        return {"action": "error", "pid": pid, "pname": pname, "err": str(exc)}
+    if not data:
+        return {"action": "error", "pid": pid, "pname": pname, "err": "sem dados"}
+
+    if data.get("profile_image_url"):
+        local_url = _download_profile_image(data["profile_image_url"], tm_url)
+        if local_url:
+            data["profile_image_url"] = local_url
+
+    new_hash = compute_hash(data)
+    effective_age = age
+    if data.get("date_of_birth"):
+        m = re.search(r"(\d{4})", data["date_of_birth"])
+        if m:
+            effective_age = datetime.now().year - int(m.group(1))
+
+    unchanged = old_hash is not None and new_hash == old_hash
+    new_streak = (old_streak + 1) if unchanged else 0
+    refresh_days = compute_refresh_days(
+        effective_age, mv_rank, data.get("is_retired", False), new_streak
+    )
+    return {
+        "action": "unchanged" if unchanged else "updated",
+        "pid": pid, "pname": pname, "data": data, "new_hash": new_hash,
+        "new_streak": new_streak, "refresh_days": refresh_days,
+        "next_refresh": datetime.now(timezone.utc) + timedelta(days=refresh_days),
+    }
+
+
+def _persist_result(conn, r: dict) -> str:
+    """Escreve o resultado no banco (serial, 1 conexão). Retorna a chave do contador."""
+    pid, act = r["pid"], r["action"]
+    if act == "skip_injured":
+        bump_next_refresh(conn, pid, 3)
+        logger.info("[phase2] %s — LESIONADO, reagendando em 3 dias", r["pname"])
+        return "skipped_injured"
+    if act == "error":
+        bump_next_refresh(conn, pid, 1)
+        logger.warning("[phase2] %s — ERRO: %s", r["pname"], r.get("err"))
+        return "errors"
+    if act == "unchanged":
+        bump_next_refresh(conn, pid, r["refresh_days"], stable_streak=r["new_streak"])
+        logger.info("[phase2] %s — SEM MUDANÇAS (streak=%d) → próxima em %d dias",
+                    r["pname"], r["new_streak"], r["refresh_days"])
+        return "skipped_unchanged"
+    update_full_player(conn, pid, r["data"], r["new_hash"], r["next_refresh"], stable_streak=0)
+    logger.info("[phase2] %s — ATUALIZADO (%d temp, %d lesões) → próxima em %d dias",
+                r["pname"], len(r["data"].get("seasons", [])),
+                len(r["data"].get("injuries", [])), r["refresh_days"])
+    return "refreshed"
+
+
+# ---------------------------------------------------------------------------
 # Orquestrador principal
 # ---------------------------------------------------------------------------
 
 def seed_all(source_filter: str | None = None,
              only_phase1: bool = False,
              only_phase2: bool = False,
-             limit: int | None = None) -> None:
+             limit: int | None = None,
+             concurrency: int = 1) -> None:
     start = time.time()
     logger.info("=" * 60)
     logger.info("RUN %s — Seeder iniciado", RUN_ID)
@@ -859,76 +948,28 @@ def seed_all(source_filter: str | None = None,
 
     refreshed = skipped_injured = skipped_unchanged = errors = 0
 
-    for idx, row in enumerate(due, 1):
-        pid, pname, tm_url, mv_rank, old_hash, is_retired, is_injured, dob, old_streak = row
-        # calcula idade em Python para evitar cast SQL problemático
-        age = 25
-        if dob:
-            m = re.search(r"(\d{4})", str(dob))
-            if m:
-                age = datetime.now().year - int(m.group(1))
-        progress = f"[{idx}/{total_due}]"
+    counters = {"refreshed": 0, "skipped_unchanged": 0, "skipped_injured": 0, "errors": 0}
+    done = 0
 
-        # Pula lesionado só no refresh (já tem dados); no seed inicial
-        # (old_hash NULL) raspa mesmo lesionado, senão nunca pega o histórico.
-        if is_injured and not is_retired and old_hash:
-            logger.info("[phase2] %s %s — LESIONADO, reagendando em 3 dias", progress, pname)
-            bump_next_refresh(conn, pid, 3)
-            skipped_injured += 1
-            continue
+    if concurrency > 1:
+        # Scrape (rede) em N threads; persist (DB) serial na thread principal.
+        # O Retry/backoff 429 da session é o que evita estourar a outra ponta.
+        logger.info("[phase2] concorrência=%d workers", concurrency)
+        with ThreadPoolExecutor(max_workers=concurrency) as pool:
+            for r in pool.map(lambda row: _scrape_player_row(row, session), due):
+                done += 1
+                counters[_persist_result(conn, r)] += 1
+                if done % 50 == 0:
+                    logger.info("[phase2] progresso %d/%d", done, total_due)
+    else:
+        for row in due:
+            counters[_persist_result(conn, _scrape_player_row(row, session))] += 1
+            time.sleep(SCRAPE_DELAY)   # politez só no modo sequencial
 
-        logger.info("[phase2] %s Raspando: %s (rank=%d, idade=%d, url=%s)",
-                    progress, pname, mv_rank, age, tm_url)
-
-        try:
-            data = scrape_full_player(session, tm_url)
-        except Exception as exc:
-            logger.error("[phase2] %s ERRO raspando %s: %s", progress, pname, exc)
-            bump_next_refresh(conn, pid, 1)
-            errors += 1
-            continue
-
-        if not data:
-            logger.warning("[phase2] %s %s — sem dados retornados", progress, pname)
-            errors += 1
-            continue
-
-        if data.get("profile_image_url"):
-            local_url = _download_profile_image(data["profile_image_url"], tm_url)
-            if local_url:
-                data["profile_image_url"] = local_url
-
-        new_hash = compute_hash(data)
-
-        effective_age = age
-        if data.get("date_of_birth"):
-            m = re.search(r"(\d{4})", data["date_of_birth"])
-            if m:
-                effective_age = datetime.now().year - int(m.group(1))
-
-        # backoff adaptativo: estável (hash igual) → streak++; mudou → zera
-        unchanged = old_hash is not None and new_hash == old_hash
-        new_streak = (old_streak + 1) if unchanged else 0
-
-        refresh_days = compute_refresh_days(
-            effective_age, mv_rank, data.get("is_retired", False), new_streak
-        )
-        next_refresh = datetime.now(timezone.utc) + timedelta(days=refresh_days)
-
-        if unchanged:
-            logger.info("[phase2] %s %s — SEM MUDANÇAS (streak=%d) → próxima em %d dias",
-                        progress, pname, new_streak, refresh_days)
-            bump_next_refresh(conn, pid, refresh_days, stable_streak=new_streak)
-            skipped_unchanged += 1
-        else:
-            logger.info("[phase2] %s %s — ATUALIZADO (%d temp, %d lesões) → próxima em %d dias",
-                        progress, pname,
-                        len(data.get("seasons", [])), len(data.get("injuries", [])),
-                        refresh_days)
-            update_full_player(conn, pid, data, new_hash, next_refresh, stable_streak=0)
-            refreshed += 1
-
-        time.sleep(SCRAPE_DELAY)
+    refreshed = counters["refreshed"]
+    skipped_unchanged = counters["skipped_unchanged"]
+    skipped_injured = counters["skipped_injured"]
+    errors = counters["errors"]
 
     elapsed = int(time.time() - start)
     conn.close()
@@ -951,11 +992,12 @@ if __name__ == "__main__":
     parser.add_argument("--phase1", action="store_true", help="Apenas buscar listas")
     parser.add_argument("--phase2", action="store_true", help="Apenas raspar detalhes pendentes")
     parser.add_argument("--limit", type=int, default=None, help="Máx de jogadores por execução (lote)")
+    parser.add_argument("--concurrency", type=int, default=1, help="Workers paralelos no scrape (1=sequencial)")
     args = parser.parse_args()
 
     try:
         seed_all(source_filter=args.source, only_phase1=args.phase1,
-                 only_phase2=args.phase2, limit=args.limit)
+                 only_phase2=args.phase2, limit=args.limit, concurrency=args.concurrency)
     except Exception:
         logger.exception("CRASH FATAL no seeder — traceback completo acima")
         raise
