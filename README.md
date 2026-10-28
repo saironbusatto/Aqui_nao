@@ -1,3 +1,5 @@
+**English** · [Português (BR)](README.pt-BR.md)
+
 <p align="center">
   <img src="Aquinao/screenshots/home.png" alt="AQUI NÃO!" width="100%">
 </p>
