@@ -5,100 +5,100 @@
 <h1 align="center">⚽ AQUI NÃO!</h1>
 
 <p align="center">
-  <strong>Comparação de carreiras de jogadores de futebol</strong><br>
-  <em>Dados reais, debate resolvido.</em>
+  <strong>Football player career comparison</strong><br>
+  <em>Real data, debate settled.</em>
 </p>
 
 <p align="center">
-  <a href="#funcionalidades">Funcionalidades</a> ·
+  <a href="#features">Features</a> ·
   <a href="#preview">Preview</a> ·
-  <a href="#instalação">Instalação</a> ·
-  <a href="#uso">Uso</a> ·
-  <a href="#tecnologias">Tecnologias</a>
+  <a href="#installation">Installation</a> ·
+  <a href="#usage">Usage</a> ·
+  <a href="#technologies">Technologies</a>
 </p>
 
 ---
 
-## Funcionalidades
+## Features
 
-- **Busca em tempo real** — digite o nome e veja jogadores com nome, nacionalidade e clube
-- **Comparação completa** — gols, assistências, jogos, minutos, lesões e títulos
-- **Gráficos interativos** — evolução por temporada, comparação por idade, projeção de carreira
-- **Duelos épicos** — Mess vs Maradona, Pelé vs Maradona, CR7 vs Messi com um clique
-- **Troca de jogadores** — mude os jogadores direto na tela de comparação
-- **Dados de múltiplas fontes** — FBref, Transfermarkt e Football-Data.org
+- **Real-time search** — type a name and see players with name, nationality and club
+- **Full comparison** — goals, assists, appearances, minutes, injuries and titles
+- **Interactive charts** — season-by-season evolution, age-based comparison, career projection
+- **Epic duels** — Messi vs Maradona, Pelé vs Maradona, CR7 vs Messi in one click
+- **Swap players** — change players right on the comparison screen
+- **Multi-source data** — FBref, Transfermarkt and Football-Data.org
 
 ## Preview
 
 <p align="center">
-  <img src="Aquinao/screenshots/01-compare.png" alt="Comparação" width="80%">
+  <img src="Aquinao/screenshots/01-compare.png" alt="Comparison" width="80%">
 </p>
 
 <p align="center">
-  <img src="Aquinao/screenshots/02-compare.png" alt="Gráficos" width="80%">
+  <img src="Aquinao/screenshots/02-compare.png" alt="Charts" width="80%">
 </p>
 
-## Instalação
+## Installation
 
 ```bash
-# Clone o repositório
+# Clone the repository
 git clone https://github.com/saironbusatto/Aqui_nao.git
 cd Aqui_nao
 
-# Instale as dependências
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-## Uso
+## Usage
 
 ```bash
-# Inicie o servidor
+# Start the server
 cd src
 python3 -m flask --app app run
 
-# Acesse
+# Open
 # http://localhost:5000
 ```
 
-## Testes
+## Tests
 
 ```bash
-# Execute todos os testes
+# Run all tests
 python3 -m pytest tests/ -v
 
-# Com cobertura
+# With coverage
 python3 -m pytest tests/ --cov=src --cov-report=term-missing
 ```
 
-## Tecnologias
+## Technologies
 
-| Camada | Tecnologia |
+| Layer | Technology |
 |--------|-----------|
 | Backend | Python + Flask |
-| Frontend | HTML/CSS/JS vanilla + Chart.js |
-| Dados | soccerdata (FBref), requests+bs4 (Transfermarkt), football-data.org |
-| Testes | pytest + pytest-cov |
-| Design | Tema dark neon (Aqui Não! Design System) |
+| Frontend | vanilla HTML/CSS/JS + Chart.js |
+| Data | soccerdata (FBref), requests+bs4 (Transfermarkt), football-data.org |
+| Tests | pytest + pytest-cov |
+| Design | Dark neon theme (Aqui Não! Design System) |
 
-## Estrutura
+## Structure
 
 ```
 src/
-├── app.py                  # Rotas Flask + banco de jogadores
-├── collectors/             # Coletoras de dados externos
-├── models/                 # Dataclasses imutáveis (Player, Comparison)
-├── services/               # Lógica de negócio (comparação, projeção, relatório)
-├── utils/                  # Cache e helpers
-├── templates/              # Home + Compare (tema dark neon)
-└── static/css/             # Estilos customizados
+├── app.py                  # Flask routes + player database
+├── collectors/             # External data collectors
+├── models/                 # Immutable dataclasses (Player, Comparison)
+├── services/               # Business logic (comparison, projection, report)
+├── utils/                  # Cache and helpers
+├── templates/              # Home + Compare (dark neon theme)
+└── static/css/             # Custom styles
 ```
 
-## Licença
+## License
 
 MIT
 
 ---
 
 <p align="center">
-  Feito com ⚽ por <a href="https://github.com/saironbusatto">saironbusatto</a>
+  Made with ⚽ by <a href="https://github.com/saironbusatto">saironbusatto</a>
 </p>
